@@ -15,13 +15,12 @@
         <div v-if="loadError" class="image-error">图片加载失败，请检查链接</div>
       </div>
       
-      <!-- 保存按钮 -->
       <button 
         class="save-btn" 
         @click="saveImage" 
-        :disabled="isLoading || loadError"
+        :disabled="isLoading || loadError || saving"
       >
-        保存图片到本地
+        {{ saving ? '保存中...' : '保存图片到我的创作' }}
       </button>
     </div>
 
@@ -33,43 +32,49 @@
 </template>
 
 <script>
+// 引入项目配置的request实例（确保带token）
+import request from '@/utils/request';
+
 export default {
   name: 'ImageViewer',
   props: {
-    // 接收AI的回复内容，用于提取图片链接
     aiReply: {
       type: String,
       default: ''
-    }
+    },
+    currentUserId: {
+      type: [String, Number],
+      required: false,
+      default: ''
+    },
   },
   data() {
     return {
-      imageUrl: '', // 提取到的图片链接
-      isLoading: false, // 图片加载状态
-      loadError: false, // 加载错误状态
-      hasChecked: false // 是否已检查过回复内容
+      imageUrl: '',
+      isLoading: false,
+      loadError: false,
+      hasChecked: false,
+      saving: false,
+      saveSuccess: false,
     };
   },
   watch: {
-    // 当AI回复变化时，自动提取图片链接
     aiReply(newReply) {
       this.extractImageUrl(newReply);
     }
   },
   methods: {
-    // 从AI回复中提取图片链接（支持Coze图片链接格式）
     extractImageUrl(content) {
       if (!content) {
         this.resetState();
         return;
       }
 
-      // 正则匹配Coze图片链接（https://s.coze.cn/t/xxx/格式）
+      // 匹配Coze图片链接
       const imgRegex = /https?:\/\/s\.coze\.cn\/t\/[a-zA-Z0-9]+\/?/g;
       const matches = content.match(imgRegex);
 
       if (matches && matches.length > 0) {
-        // 提取第一个有效链接
         this.imageUrl = matches[0];
         this.isLoading = true;
         this.loadError = false;
@@ -80,28 +85,64 @@ export default {
       }
     },
 
-    // 处理图片加载错误
     handleImageError() {
       this.isLoading = false;
       this.loadError = true;
     },
 
-    // 保存图片到本地
-    saveImage() {
-      if (!this.imageUrl) return;
+    async saveImage() {
+      // 验证用户登录状态
+      if (!this.currentUserId) {
+        alert('请先登录再保存图片');
+        return;
+      }
+      // 验证图片链接
+      if (!this.imageUrl || this.saving) return;
 
-      // 创建一个隐藏的a标签用于下载
-      const link = document.createElement('a');
-      link.href = this.imageUrl;
-      // 生成文件名（以链接中的ID为基础）
-      const fileName = `coze-image-${this.imageUrl.split('/').pop() || 'unknown'}.png`;
-      link.download = fileName; // 触发下载
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      this.saving = true;
+      this.saveSuccess = false;
+
+      try {
+        const fileName = this.imageUrl.split('/').pop() || 'generated-image';
+        
+        // 生成符合后端要求的时间格式（不含毫秒）
+        const date = new Date();
+        // 转换为 ISO 格式并去除毫秒部分（例如 "2025-07-29T10:22:21Z"）
+        const generateTime = date.toISOString().split('.')[0] + 'Z';
+        // 打印请求信息（用于调试）
+        console.log('保存请求参数:', {
+          userId: this.currentUserId,
+          imageName: fileName,
+          imageUrl: this.imageUrl,
+          generateTime: new Date().toISOString()
+        });
+
+        // 使用项目配置的request实例发送请求（自动带token）
+        const response = await request.post('/generatedImage/save', {
+          userId: this.currentUserId,
+          imageName: fileName,
+          imageUrl: this.imageUrl,
+          generateTime: generateTime
+        });
+
+        // 处理后端响应（根据实际响应格式调整）
+        if (response.data && (response.data.code === 200 || response.data.success)) {
+          this.$emit('save-success');
+          this.saveSuccess = true;
+          alert('图片保存成功');
+          setTimeout(() => this.saveSuccess = false, 2000);
+        } else {
+          throw new Error(response.data.msg || '保存失败（无详细信息）');
+        }
+      } catch (error) {
+        console.error('保存失败详情:', error);
+        console.error('响应数据:', error.response?.data || '无响应');
+        alert('保存失败: ' + (error.message || '未知错误'));
+      } finally {
+        this.saving = false;
+      }
     },
 
-    // 重置状态
     resetState() {
       this.imageUrl = '';
       this.isLoading = false;
@@ -109,7 +150,6 @@ export default {
     }
   },
   created() {
-    // 初始化时检查已有回复
     if (this.aiReply) {
       this.extractImageUrl(this.aiReply);
     }

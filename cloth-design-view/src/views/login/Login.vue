@@ -28,6 +28,7 @@ import request from "@/utils/request.js";
 import { setToken } from "@/utils/storage.js";
 import md5 from 'js-md5';
 import Logo from '@/components/Logo.vue';
+import { mapActions } from 'vuex';
 export default {
     name: "Login",
     components: { Logo },
@@ -57,36 +58,54 @@ export default {
             const hashedPwd = md5(md5(this.pwd));
             const paramDTO = { userAccount: this.act, userPwd: hashedPwd };
             try {
-                const { data } = await request.post(`user/login`, paramDTO);
-                if (data.code !== 200) {
-                    this.$swal.fire({
-                        title: '登录失败',
-                        text: data.msg,
-                        icon: 'error',
-                        showConfirmButton: false,
-                        timer: DELAY_TIME,
-                    });
-                    return;
-                }
-                setToken(data.data.token);
-                // 使用Swal通知登录成功，延迟后跳转
-                this.$swal.fire({
-                    title: '登录成功',
-                    text: '即将进入系统...',
-                    icon: 'success',
-                    showConfirmButton: false,
-                    timer: DELAY_TIME,
-                });
-                // 根据角色延迟跳转
-                setTimeout(() => {
-                    const { role } = data.data;
-                    this.navigateToRole(role);
-                }, DELAY_TIME);
-            } catch (error) {
-                console.error('登录请求错误:', error);
-                this.$message.error('登录请求出错，请重试！');
-            }
-        },
+        const { data } = await request.post(`user/login`, paramDTO);
+        if (data.code !== 200) {
+          // 登录失败处理
+          this.$swal.fire({
+            title: '登录失败',
+            text: data.msg,
+            icon: 'error',
+            showConfirmButton: false,
+            timer: DELAY_TIME,
+          });
+          return; // 登录失败时才需要 return
+        }
+        
+        // 登录成功：保存用户信息到 Vuex
+        this.loginToStore({
+          id: data.data.id,
+          role: data.data.role,
+          token: data.data.token
+        });
+        
+        // 保存 token 到本地存储
+        setToken(data.data.token);
+        
+        // 登录成功提示
+        this.$swal.fire({
+          title: '登录成功',
+          text: '即将进入系统...',
+          icon: 'success',
+          showConfirmButton: false,
+          timer: DELAY_TIME,
+        });
+        
+        // 根据角色跳转
+        setTimeout(() => {
+          const { role } = data.data;
+          this.navigateToRole(role);
+        }, DELAY_TIME);
+        
+      } catch (error) {
+        console.error('登录请求错误:', error);
+        this.$message.error('登录请求出错，请重试！');
+      }
+    },
+    
+    // 映射 Vuex 的 action 到 methods
+    ...mapActions('user', {
+      loginToStore: 'login' // 将 user/login action 映射为 this.loginToStore
+    }),
         navigateToRole(role) {
             switch (role) {
                 case ADMIN_ROLE:

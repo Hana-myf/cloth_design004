@@ -99,6 +99,7 @@ public class UserServiceImpl implements UserService {
         Map<String, Object> map = new HashMap<>();
         map.put("token", token);
         map.put("role", user.getUserRole());
+        map.put("id", user.getId());
         return ApiResult.success("登录成功", map);
     }
 

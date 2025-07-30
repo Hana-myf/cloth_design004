@@ -1,7 +1,7 @@
 /*
 Navicat MySQL Data Transfer
 
-Source Server         : vueblog
+Source Server         : users
 Source Server Version : 50744
 Source Host           : localhost:3306
 Source Database       : personal_health
@@ -10,7 +10,7 @@ Target Server Type    : MYSQL
 Target Server Version : 50744
 File Encoding         : 65001
 
-Date: 2025-07-26 10:23:02
+Date: 2025-07-30 13:27:11
 */
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -30,7 +30,7 @@ CREATE TABLE `evaluations` (
   `upvote_list` longtext COLLATE utf8mb4_bin COMMENT '点赞列表，以","分割',
   `create_time` datetime DEFAULT NULL COMMENT '评论时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC;
 
 -- ----------------------------
 -- Records of evaluations
@@ -42,6 +42,27 @@ INSERT INTO `evaluations` VALUES ('26', '23', '18', '18', 'NEWS', '12', '你怎�
 INSERT INTO `evaluations` VALUES ('27', '23', '3', '18', 'NEWS', '12', '不是好歹', 0x3138, '2025-04-22 15:15:36');
 INSERT INTO `evaluations` VALUES ('28', null, '23', null, 'NEWS', '13', '给了我很多灵感和启发！', 0x3233, '2025-07-25 16:19:12');
 INSERT INTO `evaluations` VALUES ('29', null, '23', null, 'NEWS', '33', '写的非常好。', 0x3233, '2025-07-25 18:02:39');
+INSERT INTO `evaluations` VALUES ('30', null, '23', null, 'NEWS', '16', '这个对我很有帮助', null, '2025-07-27 20:40:36');
+
+-- ----------------------------
+-- Table structure for generated_image
+-- ----------------------------
+DROP TABLE IF EXISTS `generated_image`;
+CREATE TABLE `generated_image` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` int(11) NOT NULL COMMENT '用户ID',
+  `image_name` varchar(255) NOT NULL COMMENT '图片名称',
+  `image_url` text NOT NULL COMMENT '图片URL地址',
+  `generate_time` datetime NOT NULL COMMENT '生成时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`) COMMENT '用户ID索引'
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COMMENT='生成的图片记录表';
+
+-- ----------------------------
+-- Records of generated_image
+-- ----------------------------
+INSERT INTO `generated_image` VALUES ('1', '23', 'generated-image', 'https://s.coze.cn/t/yDRvMLdA2hs/', '2025-07-29 10:33:21');
+INSERT INTO `generated_image` VALUES ('2', '23', 'generated-image', 'https://s.coze.cn/t/cRumkVKeZuk/', '2025-07-29 11:10:22');
 
 -- ----------------------------
 -- Table structure for message

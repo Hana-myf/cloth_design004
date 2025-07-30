@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.kmbeast.mapper.GeneratedImageMapper">
+
+    <select id="query" resultMap="BaseResultMap">
+        SELECT
+        gi.id,
+        gi.user_id,
+        gi.image_name,
+        gi.image_url,
+        gi.generate_time
+        FROM generated_image gi
+        <where>
+            <!-- 严格匹配用户ID，确保只能查询当前用户的数据 -->
+            <if test="userId != null">
+                AND gi.user_id = #{userId}
+            </if>
+            <if test="imageName != null and imageName != ''">
+                AND gi.image_name LIKE concat('%',#{imageName},'%')
+            </if>
+            <if test="startGenerateTime != null">
+                AND gi.generate_time >= #{startGenerateTime}
+            </if>
+            <if test="endGenerateTime != null">
+                AND gi.generate_time &lt;= #{endGenerateTime}
+            </if>
+        </where>
+        <!-- 按生成时间倒序，确保最新的在最前面 -->
+        ORDER BY gi.generate_time DESC
+        <!-- 分页逻辑：使用bind标签计算offset，避免表达式解析问题 -->
+        <if test="pageNum != null and pageSize != null">
+            <bind name="offset" value="(pageNum - 1) * pageSize"/>
+            LIMIT #{offset}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM generated_image gi
+        <where>
+            <if test="userId != null">
+                AND gi.user_id = #{userId}
+            </if>
+            <if test="imageName != null and imageName != ''">
+                AND gi.image_name LIKE concat('%',#{imageName},'%')
+            </if>
+            <if test="startGenerateTime != null">
+                AND gi.generate_time >= #{startGenerateTime}
+            </if>
+            <if test="endGenerateTime != null">
+                AND gi.generate_time &lt;= #{endGenerateTime}
+            </if>
+        </where>
+    </select>
+
+    <insert id="insert" parameterType="cn.kmbeast.pojo.entity.GeneratedImage"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO generated_image
+            (user_id, image_name, image_url, generate_time)
+        VALUES
+            (#{userId}, #{imageName}, #{imageUrl}, #{generateTime})
+    </insert>
+
+    <resultMap id="BaseResultMap" type="cn.kmbeast.pojo.entity.GeneratedImage">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="image_name" property="imageName"/>
+        <result column="image_url" property="imageUrl"/>
+        <!-- 显式指定时间格式，避免解析问题 -->
+        <result column="generate_time" property="generateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+</mapper>

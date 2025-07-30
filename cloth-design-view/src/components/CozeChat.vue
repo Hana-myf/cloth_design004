@@ -47,8 +47,14 @@
         <h3>图片预览</h3>
       </div>
       <ImageViewer 
-        :aiReply="lastAiReply" 
-        class="image-viewer"
+       :aiReply="lastAiReply" 
+      :currentUserId="currentUserId.toString()" 
+      class="image-viewer"
+      @save-success="loadUserImages" 
+      />
+      <ImageSaveList 
+    :savedImages="savedImages" 
+    class="save-list"
       />
     </div>
   </div>
@@ -56,10 +62,14 @@
 
 <script>
 import ImageViewer from './ImageViewer.vue';
+import ImageSaveList from './ImageSaveList.vue';
+import { mapGetters } from 'vuex';
+import request from '@/utils/request';
 export default {
   name: 'CozeChat',
   components: {
-    ImageViewer
+    ImageViewer,
+    ImageSaveList
   },
   data() {
     return {
@@ -71,10 +81,78 @@ export default {
       robotId: '7475343940674371584',
       userId: 'user_' + Math.random().toString(36).substr(2, 9),
       apiUrl: 'https://api.coze.cn/v3/chat',
-      lastAiReply: ''
+      lastAiReply: '',
+      savedImages: [], // 存储后端返回的用户图片列表
+      currentUserId: this.$store.state.user.userInfo?.id || '', 
     };
   },
+  mounted() {
+    // 初始化欢迎消息
+    this.messages.push({
+      content: '你好！我是AI助手，有什么可以帮你的吗？',
+      isUser: false,
+      avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/chatsdk-logo.png'
+    });
+    // 登录状态判断（只执行一次）
+    if (!this.currentUserId) {
+      this.$router.push('/login'); // 未登录跳转
+    } else {
+      this.loadUserImages(); // 已登录才加载图片
+    }
+    console.log('Vuex用户信息:', this.$store.state.user.userInfo);
+    console.log('当前用户ID:', this.currentUserId);
+  },
   methods: {
+    // 调用后端接口，查询用户的图片列表
+    async loadUserImages() {
+  try {
+    const queryDto = {
+      userId: this.currentUserId,
+      pageNum: 1,
+      pageSize: 4
+    };
+    console.log('前端查询参数：', queryDto);
+
+    const response = await request.post('/generatedImage/query', queryDto);
+    // 关键：打印完整响应，确认后端返回格式
+    console.log('后端响应完整数据：', response); 
+    console.log('后端响应data字段：', response.data);
+
+    // 修正判断条件：根据后端实际返回的code判断（通常200代表成功）
+    if (response.data && response.data.code === 200) { 
+      // 确认后端返回的图片数组在response.data.data中
+      console.log('后端返回的图片列表：', response.data.data);
+
+      // 按时间倒序（后端已按generate_time DESC排序，可省略）
+      const sortedImages = response.data.data.sort(
+        (a, b) => new Date(b.generateTime) - new Date(a.generateTime)
+      );
+      this.savedImages = sortedImages.slice(0, 4);
+      // 打印赋值后的savedImages，确认数据已接收
+      console.log('前端savedImages赋值后：', this.savedImages); 
+    } else {
+      console.warn('后端返回非成功状态：', response.data);
+    }
+  } catch (error) {
+    console.error('加载失败：', error);
+  }
+},
+    // 保存图片到后端（调用已有的save接口）
+    async saveImageToBackend(imageInfo) {
+      try {
+        const imageData = {
+          userId: this.currentUserId,
+          imageName: imageInfo.name, // 图片名称
+          imageUrl: imageInfo.url,   // 图片URL
+          generateTime: new Date()   // 生成时间
+        };
+        await this.$http.post('/generatedImage/save', imageData);
+        // 保存成功后，重新加载列表（此时后端会返回最新的4张）
+        this.loadUserImages();
+      } catch (error) {
+        console.error('保存图片失败:', error);
+      }
+    },
     parseContent(content) {
       return content;
     },
@@ -188,13 +266,6 @@ export default {
       });
       this.scrollToBottom(); // 滚动到底部
     }
-  },
-  mounted() {
-    this.messages.push({
-      content: '你好！我是AI助手，有什么可以帮你的吗？',
-      isUser: false,
-      avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/chatsdk-logo.png'
-    });
   }
 };
 </script>
@@ -207,6 +278,7 @@ export default {
   padding: 20px;
   max-width: 1400px; /* 限制最大宽度，避免过宽 */
   margin: 0 auto; /* 居中显示 */
+  align-items: flex-start; /* 顶部对齐，而不是拉伸对齐 */
 }
 
 /* 左侧聊天框样式 */
@@ -218,17 +290,21 @@ export default {
   font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column; /* 纵向布局，内容区自适应高度 */
+  max-height: 700px;
 }
 
 /* 右侧图片预览框样式 */
 .image-container {
-  width: 600px; /* 与聊天框等宽 */
+  width: 400px; /* 与聊天框等宽 */
   border: 1px solid #e0e0e0; /* 相同边框 */
   border-radius: 8px; /* 相同圆角 */
   box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* 相同阴影 */
   font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column;
+  /* 新增：最大高度限制，超出则滚动 */
+  max-height: 650px;
+  /* 移除了flex:1，不再强制拉伸高度 */
 }
 
 /* 图片框头部（与聊天框头部风格一致） */
@@ -246,39 +322,33 @@ export default {
 
 /* 图片预览工具的容器 */
 .image-viewer {
-  flex: 1; /* 自适应填充剩余高度 */
   padding: 15px;
+  /* 让内容决定高度 */
+  min-height: 100px; /* 最小高度，避免内容过少时框体过小 */
+  max-height: calc(100% - 45px); /* 减去头部高度 */
+  overflow-y: auto; /* 内容超出时显示滚动条 */
 }
-
-/* 聊天框头部 */
+.save-list {
+  flex: 1; /* 允许列表占据剩余空间 */
+  overflow-y: auto; /* 列表内容超出时滚动 */
+}
 .chat-header {
   background-color: #165DFF;
   color: white;
-  padding: 12px 15px;
+  /* 减小上下内边距（原5px调整为3px），左右内边距保留 */
+  padding: 3px 15px; 
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-radius: 8px 8px 0 0;
-}
-/* 标题栏按钮容器 */
-.header-buttons {
-  display: flex;
-  gap: 8px; /* 按钮间距 */
+  /* 可选：适当减小标题字体大小，进一步压缩高度 */
+  font-size: 14px; 
 }
 
-/* 清空按钮样式 */
-.clear-btn {
-  background: rgba(255,255,255,0.2);
-  border: none;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.clear-btn:hover {
-  background: rgba(255,255,255,0.3); /*  hover效果 */
+/* 同步调整头部按钮大小，保持比例协调 */
+.header-buttons button {
+  padding: 2px 8px; /* 减小按钮内边距 */
+  font-size: 12px; /* 减小按钮文字大小 */
 }
 
 .minimize-btn {
@@ -297,8 +367,7 @@ export default {
   overflow-y: auto; /* 内容超出时显示垂直滚动条 */
   padding: 15px;
   background-color: #f9f9f9;
-  /* 新增：隐藏横向滚动条（避免内容过宽） */
-  overflow-x: hidden;
+  overflow-x: hidden; /* 隐藏横向滚动条 */
 }
 
 .message-item {

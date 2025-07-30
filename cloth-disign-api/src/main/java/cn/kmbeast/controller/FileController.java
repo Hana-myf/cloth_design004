@@ -42,6 +42,17 @@ public class FileController {
                 rep.put("data", "http://localhost:21090" + API+ "/file/getFile?fileName=" + fileName);
                 return rep;
             }
+            if (multipartFile.getSize() > 10 * 1024 * 1024) {
+                rep.put("code", 400);
+                rep.put("msg", "文件大小不能超过10MB");
+                return rep;
+            }
+            String contentType = multipartFile.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                rep.put("code", 400);
+                rep.put("msg", "请上传图片文件（jpg、png等）");
+                return rep;
+            }
         } catch (IOException e) {
             rep.put("code", 400);
             rep.put("msg", "文件上传异常");

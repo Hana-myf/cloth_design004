@@ -1,6 +1,5 @@
 <template>
     <div>
-        服装设计页
         <CozeChat />
     </div>
 
