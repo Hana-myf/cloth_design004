@@ -30,6 +30,17 @@
       </div>
 
       <div v-if="!isMinimized" class="chat-input">
+        <label class="file-upload-btn" for="file-upload">
+          <i class="el-icon-picture"></i> <!-- 假设使用Element UI图标，也可替换为文字 -->
+        </label>
+        <input 
+          type="file" 
+          id="file-upload" 
+          class="file-upload-input"
+          accept="image/*" 
+          @change="handleFileUpload"
+          :disabled="isLoading"
+        >
         <input 
           type="text" 
           v-model="userInput" 
@@ -84,6 +95,7 @@ export default {
       lastAiReply: '',
       savedImages: [], // 存储后端返回的用户图片列表
       currentUserId: this.$store.state.user.userInfo?.id || '', 
+      uploadUrl: '/file/upload',
     };
   },
   mounted() {
@@ -137,6 +149,64 @@ export default {
     console.error('加载失败：', error);
   }
 },
+async handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // 清空文件选择框（允许重复选择同一文件）
+      e.target.value = '';
+
+      // 验证文件类型和大小
+      if (!file.type.startsWith('image/')) {
+        this.$message.error('请上传图片文件（jpg、png等）');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) { // 10MB限制
+        this.$message.error('文件大小不能超过10MB');
+        return;
+      }
+
+      this.isLoading = true;
+      try {
+        // 构建FormData
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // 调用后端上传接口
+        const response = await this.$axios.post(this.uploadUrl, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        if (response.data.code === 200) {
+          const imageUrl = response.data.data; // 后端返回的图片URL
+          // 将图片添加到聊天记录
+          this.messages.push({
+            content: `<img src="${imageUrl}" class="chat-image" alt="上传的图片">`,
+            isUser: true,
+            avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/coze-logo.png'
+          });
+          this.scrollToBottom();
+
+          // 自动发送图片给AI处理（如果需要）
+          this.sendMessageWithImage(imageUrl);
+        } else {
+          this.$message.error(response.data.msg || '上传失败');
+        }
+      } catch (error) {
+        console.error('文件上传失败:', error);
+        this.$message.error('上传失败，请重试');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    sendMessageWithImage(imageUrl) {
+      // 可以添加提示文本，例如"请分析这张图片"
+      const userMessage = `请分析这张图片: ${imageUrl}`;
+      
+      // 调用原有发送逻辑
+      this.userInput = userMessage;
+      this.sendMessage();
+    },
     // 保存图片到后端（调用已有的save接口）
     async saveImageToBackend(imageInfo) {
       try {
@@ -369,9 +439,9 @@ export default {
   background-color: #f9f9f9;
   overflow-x: hidden; /* 隐藏横向滚动条 */
 }
-
+/* 确保消息容器不会被图片撑得过大 */
 .message-item {
-  margin-bottom: 15px;
+  overflow: hidden;
 }
 
 .message-bubble {
@@ -403,16 +473,25 @@ export default {
   word-break: break-word;
 }
 
-.message-bubble.user.content {
-  background-color: #165DFF;
-  color: white;
+.message-bubble.user.content,
+.message-bubble.ai .content {
+  padding: 12px 15px; /* 稍微增大内边距 */
+  overflow: hidden; /* 防止图片超出气泡范围 */
 }
-
-.message-bubble.ai.content {
-  background-color: white;
-  border: 1px solid #e0e0e0;
+/* 聊天图片样式优化 */
+.chat-image {
+  /* 限制最大宽度为对话框的80%，避免超出容器 */
+  max-width: 80%;
+  /* 限制最大高度，避免图片过长 */
+  max-height: 200px;
+  /* 保持图片比例，避免变形 */
+  object-fit: contain;
+  /* 增加边框圆角和间距，提升美观度 */
+  border-radius: 8px;
+  margin: 5px 0;
+  /* 避免图片被挤压时出现滚动条 */
+  display: block;
 }
-
 .sender {
   font-size: 12px;
   margin: 0 0 5px 0;
@@ -465,7 +544,44 @@ export default {
 .chat-input button:hover {
   background-color: #0e47d7;
 }
+/* 文件上传按钮样式 */
+.file-upload-input {
+  display: none; /* 隐藏原生文件选择框 */
+}
 
+.file-upload-btn {
+  margin-right: 10px;
+  padding: 8px;
+  color: #165DFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-upload-btn:hover {
+  color: #0e47d7;
+}
+::v-deep .chat-image {
+  max-width: 80% !important; /* 限制最大宽度为对话框80% */
+  max-height: 200px !important; /* 限制最大高度200px */
+  object-fit: contain !important; /* 保持比例，不拉伸 */
+  border-radius: 8px;
+  margin: 5px auto !important; /* 居中显示 */
+  display: block !important;
+}
+
+/* 确保消息气泡不会被图片撑大 */
+::v-deep .message-bubble .content {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* 限制消息容器宽度，避免图片溢出 */
+::v-deep .message-item {
+  max-width: 100%;
+  overflow: hidden;
+}
 /* 响应式调整：屏幕宽度小于1240px时自动纵向排列 */
 @media (max-width: 1240px) {
   .chat-layout {

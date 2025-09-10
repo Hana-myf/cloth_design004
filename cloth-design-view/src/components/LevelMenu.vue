@@ -4,35 +4,43 @@
             <li>
                 <Logo />
             </li>
-            <li v-if="!item.isHidden" :style="{
-                fontSize: selectedIndex === index ? '18px' : '14px',
-                color: selectedIndex === index ? '#1c1c1c' : 'rgb(102 102 102)'
-            }" class="funItem" v-for="(item, index) in menus" :key="index" @click="menuClick(`${item.path}`, index)">
+            <!-- 功能菜单 -->
+            <li v-if="!item.isHidden" 
+                :style="{
+                    fontSize: selectedIndex === index ? '18px' : '14px',
+                    color: selectedIndex === index ? '#1c1c1c' : 'rgb(102 102 102)'
+                }" 
+                class="funItem" 
+                v-for="(item, index) in menus" 
+                :key="index" 
+                @click="menuClick(`${item.path}`, index)">
                 <span>
                     <i :class="item.icon"></i>
                     <span>&nbsp; {{ item.name }}</span>
                 </span>
             </li>
-            <li>
+            <!-- 搜索框 -->
+            <li class="search-item">
                 <el-row>
-                    <el-col :span="18">
+                    <el-col :span="14">
                         <input class="search-input" placeholder="搜索..." @keyup.enter="search" v-model="filterText" />
                     </el-col>
-                    <el-col :span="6">
-                        <span @click="search"
-                            style="background-color: #000;color: #f1f1f1;border-radius: 5px;padding: 5px 10px;width: 100%;box-sizing: border-box;">
+                    <el-col :span="4">
+                        <span @click="search" class="search-btn">
                             搜索
                         </span>
                     </el-col>
                 </el-row>
             </li>
-            <li style="position: absolute;right: 380px;">
-                <span @click="healthDataRecord" style="margin:14px 10px;">
+            <!-- 指标记录 -->
+            <li class="health-record-item">
+                <span @click="healthDataRecord" class="health-record-text">
                     <i class="el-icon-edit-outline"></i>
                     指标记录
                 </span>
             </li>
-            <li style="position: absolute;right: 350px;">
+            <!-- 消息中心 -->
+            <li class="message-item">
                 <el-badge style="margin-left: 5px;font-size: 16px;" v-if="noReadMsg !== 0" :value="noReadMsg">
                     <span class="message-span" @click="messageCenter">
                         <i class="el-icon-bell"></i>
@@ -42,7 +50,8 @@
                     <i class="el-icon-bell"></i>
                 </span>
             </li>
-            <li>
+            <!-- 用户信息 -->
+            <li class="user-item">
                 <span class="user-block">
                     <el-dropdown class="user-dropdown">
                         <span class="el-dropdown-link" style="display: flex; align-items: center;">
@@ -51,10 +60,8 @@
                             <i class="el-icon-arrow-down el-icon--right" style="margin-left: 5px;"></i>
                         </span>
                         <el-dropdown-menu slot="dropdown">
-                            <el-dropdown-item icon="el-icon-user"
-                                @click.native="userCenterPanel">个人中心</el-dropdown-item>
-                            <el-dropdown-item icon="el-icon-warning-outline"
-                                @click.native="resetPwd">修改密码</el-dropdown-item>
+                            <el-dropdown-item icon="el-icon-user" @click.native="userCenterPanel">个人中心</el-dropdown-item>
+                            <el-dropdown-item icon="el-icon-warning-outline" @click.native="resetPwd">修改密码</el-dropdown-item>
                             <el-dropdown-item icon="el-icon-back" @click.native="loginOut">退出登录</el-dropdown-item>
                         </el-dropdown-menu>
                     </el-dropdown>
@@ -188,19 +195,22 @@ export default {
 </script>
 <style scoped lang="scss">
 .nav {
-    padding: 12px 160px;
+    padding: 12px 20px; /* 调整整体内边距，避免右侧内容溢出 */
     height: 70px;
     line-height: 70px;
     list-style: none;
     border-bottom: 1px solid #f1f1f1;
     margin: 0;
+    display: flex; /* 使用flex布局更易控制间距 */
+    align-items: center;
+    justify-content: flex-start;
 
     li {
         float: left;
         height: 70px;
         line-height: 70px;
         font-weight: 400;
-        padding: 0 20px;
+        padding: 0 15px; /* 统一基础间距 */
         user-select: none;
         color: rgb(102, 102, 102);
         font-size: 14px;
@@ -209,53 +219,112 @@ export default {
         i {
             color: rgb(102, 102, 102);
         }
-
-        .message-span {
-            padding: 5px;
-            border-radius: 5px;
-
-            i {
-                font-size: 16px;
-            }
-        }
-
-        .message-span:hover {
-            background-color: rgb(240, 240, 240);
-        }
-
-        .search-input {
-            outline: none;
-            width: 100%;
-            font-size: 14px;
-            height: 35px;
-            line-height: 35px;
-            font-size: 16px;
-            padding: 2px 30px;
-            border-radius: 5px;
-            transition: all 0.5s;
-            border: 1px solid rgb(76, 77, 11);
-            border-radius: 5px;
-        }
-
-        .search-button {
-            background-color: #000;
-            font-size: 16px;
-            cursor: pointer;
-            height: 30px;
-            line-height: 30px;
-        }
-
-        .serch-input:focus {
-            border: 1px solid rgb(188, 229, 247);
-        }
-
     }
 }
 
-.user-block {
-    position: absolute;
-    right: 200px;
+/* 搜索框容器样式 - 作为按钮定位的父容器 */
+.search-item {
+    margin-left: 3px;
+    padding: 0 10px;
+    min-width: 300px;
+    position: relative; /* 关键：让按钮基于此容器定位 */
+}
 
+/* 搜索输入框样式 - 预留按钮空间 */
+.search-input {
+    outline: none;
+    width: 100%;
+    font-size: 14px;
+    height: 35px;
+    line-height: 35px;
+    /* 右侧预留按钮+边距空间（按钮宽约60px+左右边距10px=70px） */
+    padding: 0 70px 0 15px; 
+    border-radius: 5px;
+    transition: all 0.3s;
+    border: 1px solid #ccc;
+    box-sizing: border-box; /* 确保padding不撑开输入框 */
+}
+
+/* 搜索按钮样式 - 内嵌在输入框内右侧 */
+.search-btn {
+    /* 绝对定位实现内嵌效果 */
+    position: absolute;
+    right: 15px; /* 距离容器右侧的间距（与输入框左侧padding呼应） */
+    top: 50%;
+    transform: translateY(-50%); /* 垂直居中对齐 */
+    
+    /* 按钮尺寸小于搜索框 */
+    height: 28px; /* 比输入框矮7px */
+    line-height: 28px; /* 文字垂直居中 */
+    min-width: 50px; /* 按钮最小宽度，小于输入框宽度 */
+    width: auto; /* 取消100%宽度，按内容自适应 */
+    
+    background-color: #000;
+    color: #f1f1f1;
+    border-radius: 3px; /* 圆角比输入框小，更精致 */
+    padding: 0 12px; /* 水平内边距 */
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px; /* 字体稍小，适配按钮尺寸 */
+    border: none; /* 去掉默认边框 */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1); /* 轻微阴影，突出按钮 */
+}
+
+/* 交互效果优化 */
+.search-btn:hover {
+    background-color: #333; /* 悬停时加深颜色 */
+}
+
+.search-input:focus {
+    border-color: #666; /* 输入框聚焦时边框变色 */
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.05); /* 轻微聚焦效果 */
+}
+
+/* 指标记录样式 */
+.health-record-item {
+    padding: 0 15px;
+    margin-left: 10px; /* 与搜索框保持距离 */
+}
+
+.health-record-text {
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: #f5f5f5;
+    }
+}
+
+/* 消息中心样式 */
+.message-item {
+    padding: 0 15px;
+    margin-left: 5px;
+}
+
+.message-span {
+    padding: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+
+    &:hover {
+        background-color: rgb(240, 240, 240);
+    }
+
+    i {
+        font-size: 16px;
+    }
+}
+
+/* 用户信息样式 */
+.user-item {
+    padding: 0 20px;
+    margin-left: 10px;
+    position: relative;
+}
+
+.user-block {
     .userName {
         display: inline-block;
         vertical-align: middle;
@@ -265,55 +334,9 @@ export default {
     }
 }
 
-.info-block {
-    position: fixed;
-    right: 10px;
-    float: right;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-
-    .search {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-
-        span {
-            font-size: 12px;
-            padding: 0 8px;
-        }
-
-    }
-
-    i {
-        padding: 6px;
-        border-radius: 3px;
-        font-size: 20px;
-    }
-
-    i:hover {
-        background-color: rgb(230, 230, 230);
-    }
-
-    .user-name {
-        padding: 0 10px;
-        color: #252933;
-        font-weight: 400;
-        margin: 0 10px;
-        font-size: 14px;
-    }
-
-    .login-out {
-        margin: 0 20px;
-        width: 20px;
-        height: 20px;
-        padding: 6px;
-        background-color: none !important;
-        border-radius: 3px;
-    }
-
-    .login-out:hover {
-        background-color: rgb(230, 230, 230);
-    }
+/* 修复搜索框聚焦样式拼写错误 */
+.search-input:focus {
+    border: 1px solid rgb(188, 229, 247);
+    outline: none;
 }
 </style>

@@ -23,6 +23,11 @@
     <!--依赖-->
     <dependencies>
         <dependency>
+            <groupId>com.volcengine</groupId>
+            <artifactId>volcengine-java-sdk-ark-runtime</artifactId>
+            <version>LATEST</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.12.0</version>
@@ -118,6 +123,16 @@
     </build>
 
     <repositories>
+        <repository>
+            <id>volcengine-maven</id>
+            <url>https://maven.volcengine.com/repository/public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
         <repository>
             <id>public</id>
             <name>aliyun nexus</name>

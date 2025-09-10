@@ -25,20 +25,24 @@ import java.util.Objects;
 @Component
 public class ProtectorAspect {
 
-    /**
-     * 环绕通知
-     * 执行前 --- （目标操作） ---执行后
-     * 环绕：两端拦截
-     *
-     * @param proceedingJoinPoint 连接点
-     * @return Object
-     * @author 【B站：程序员晨星】
-     */
     @Around("@annotation(cn.kmbeast.aop.Protector)")
     public Object auth(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletRequest request = attributes.getRequest();
         String token = request.getHeader("token");
+        String requestUri = request.getRequestURI();
+
+        // 关键修改：匹配完整路径中的特征部分
+        // 包含 context-path + 新接口路径的完整匹配
+        if (requestUri.contains("/api/personal-heath/v1.0/public/ai/generate-image") ||
+                // 保留原有路径的兼容匹配
+                requestUri.contains("/api/proxy/generate-image")) {
+            System.out.println("匹配到免认证路径：" + requestUri); // 新增日志用于验证
+            return proceedingJoinPoint.proceed();
+        }
+
+        // 以下原有逻辑不变...
         if (token == null) {
             return ApiResult.error("身份认证失败，请先登录");
         }
@@ -48,27 +52,20 @@ public class ProtectorAspect {
         }
         Integer userId = claims.get("id", Integer.class);
         Integer roleId = claims.get("role", Integer.class);
-        // 获取被拦截方法的签名
         MethodSignature signature = (MethodSignature) proceedingJoinPoint.getSignature();
-        // 获取方法上的@Protector注解实例
         Protector protectorAnnotation = signature.getMethod().getAnnotation(Protector.class);
         if (protectorAnnotation == null) {
             return ApiResult.error("身份认证失败，请先登录");
         }
         String role = protectorAnnotation.role();
-        // 验证用户角色
         if (!"".equals(role)) {
             if (!Objects.equals(RoleEnum.ROLE(Math.toIntExact(roleId)), role)) {
                 return ApiResult.error("无操作权限");
             }
         }
-        // 放在 ThreadLocal里面，当前线程都可用
         LocalThreadHolder.setUserId(userId, roleId);
         Object result = proceedingJoinPoint.proceed();
-        // 请求结束，释放资源
         LocalThreadHolder.clear();
         return result;
     }
-
-
 }

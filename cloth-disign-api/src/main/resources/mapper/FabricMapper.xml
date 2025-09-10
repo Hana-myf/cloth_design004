@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.kmbeast.mapper.FabricMapper">
+
+    <select id="query" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM fabric
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE concat('%',#{name},'%')
+            </if>
+            <if test="type != null and type != ''">
+                AND type = #{type}
+            </if>
+            <if test="startCreateTime != null">
+                AND create_time >= #{startCreateTime}
+            </if>
+            <if test="endCreateTime != null">
+                AND create_time &lt;= #{endCreateTime}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <!-- 分页参数修改：pageNum → current，pageSize → size -->
+        <if test="current != null and size != null and current >= 1">
+            <bind name="offset" value="(current - 1) * size"/>
+            LIMIT #{offset}, #{size}
+        </if>
+    </select>
+
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM fabric
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE concat('%',#{name},'%')
+            </if>
+            <if test="type != null and type != ''">
+                AND type = #{type}
+            </if>
+            <if test="startCreateTime != null">
+                AND create_time >= #{startCreateTime}
+            </if>
+            <if test="endCreateTime != null">
+                AND create_time &lt;= #{endCreateTime}
+            </if>
+        </where>
+    </select>
+
+    <insert id="insert" parameterType="cn.kmbeast.pojo.entity.Fabric"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO fabric
+            (name, type, image_url, description, create_time, update_time)
+        VALUES
+            (#{name}, #{type}, #{imageUrl}, #{description}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="cn.kmbeast.pojo.entity.Fabric">
+        UPDATE fabric
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="imageUrl != null">image_url = #{imageUrl},</if>
+            <if test="description != null">description = #{description},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM fabric WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM fabric
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectAllTypes" resultType="string">
+        SELECT DISTINCT type FROM fabric
+    </select>
+
+    <sql id="Base_Column_List">
+        id, name, type, image_url, description, create_time, update_time
+    </sql>
+
+    <resultMap id="BaseResultMap" type="cn.kmbeast.pojo.entity.Fabric">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="type" property="type"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="description" property="description"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+</mapper>
+

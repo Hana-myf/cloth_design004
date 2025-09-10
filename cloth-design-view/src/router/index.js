@@ -79,6 +79,13 @@ const routes = [
         component: () => import(`@/views/admin/EvaluationsManage.vue`),
         meta: { requireAuth: true },
       },
+      {
+        path: "/fabricManage",
+        name: '面料管理',
+        icon: 'el-icon-picture-outline',
+        component: () => import(`@/views/admin/FabricManage.vue`),
+        meta: { requireAuth: true },
+      }
     ]
   },
   {
@@ -97,7 +104,7 @@ const routes = [
         },
       },
       {
-        name: '我的收藏',
+        name: '收藏与创作',
         path: "/my-save",
         component: () => import(`@/views/user/NewsSave.vue`),
         meta: {
@@ -138,6 +145,14 @@ const routes = [
           requireAuth: true
         },
         isHidden: true
+      },
+      {
+        name: '细节优化',
+        path: "/detail-optimization",
+        component: () => import(`@/views/user/DetailOptimization.vue`),
+        meta: {
+          requireAuth: true,
+        },
       },
     ]
   }
