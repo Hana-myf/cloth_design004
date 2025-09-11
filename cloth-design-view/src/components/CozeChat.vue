@@ -88,7 +88,7 @@ export default {
       userInput: '',
       isLoading: false,
       isMinimized: false,
-      apiKey: 'pat_sk8iOnz5qzT9cU18pxYZSWboH3f6oynlyQctR1ObYP9vV9lDTUYsw4lPtQjxjzfe',
+      apiKey: 'pat_mY0OSWqTlyfxYW4cV8fu7vGY6jXupqFhQJ2FvyZfasve8SgKMGmFoFoS5Rshonq5',
       robotId: '7475343940674371584',
       userId: 'user_' + Math.random().toString(36).substr(2, 9),
       apiUrl: 'https://api.coze.cn/v3/chat',

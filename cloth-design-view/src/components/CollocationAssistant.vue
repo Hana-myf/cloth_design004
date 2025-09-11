@@ -49,7 +49,25 @@ export default {
       apiKey: 'pat_mY0OSWqTlyfxYW4cV8fu7vGY6jXupqFhQJ2FvyZfasve8SgKMGmFoFoS5Rshonq5',
       robotId: '7533187838620631066', // 搭配助手robotid
       userId: 'user_' + Math.random().toString(36).substr(2, 9),
-      apiUrl: 'https://api.coze.cn/v3/chat'
+      apiUrl: 'https://api.coze.cn/v3/chat',
+      recommendList: [
+        {
+          style: '通勤风',
+          desc: '羊毛面料 + 深灰/藏青 + 简约剪裁 + 单排扣设计'
+        },
+        {
+          style: '休闲风',
+          desc: '牛仔面料 + 水洗蓝 + 破洞元素 + 宽松版型'
+        },
+        {
+          style: '轻奢风',
+          desc: '真丝面料 + 香槟金/米白 + 蕾丝拼接 + 收腰设计'
+        },
+        {
+          style: '运动风',
+          desc: '速干面料 + 荧光色撞色 + 反光条 + 连帽设计'
+        }
+      ]
     };
   },
   mounted() {
@@ -152,7 +170,9 @@ export default {
         this.isLoading = false;
       }
     },
-
+    handleRecommendSelect(item) {
+      this.$emit('select-recommend', item);
+    },
     scrollToBottom() {
       const container = this.$el.querySelector('.chat-messages');
       if (container) container.scrollTop = container.scrollHeight;

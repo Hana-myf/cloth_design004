@@ -3,71 +3,52 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <h1>细节优化工具</h1>
-      <p>上传图片 → 选择素材 → 生成方案</p>
+      <p>上传图片/输入公网链接 → 选择素材 → 生成方案</p>
     </div>
 
     <!-- 主布局：左（工具）- 中（交互）- 右（成果） -->
     <div class="main-layout">
-      <!-- 左侧工具区：包含面料库和色彩提取器 -->
+      <!-- 左侧工具区 -->
       <div class="tools-area">
         <div class="tools-title">设计工具</div>
-        
-        <!-- 面料库组件 -->
         <fabric-library 
           @select="onFabricSelect" 
-           class="tool-component fabric-component"
+          class="tool-component fabric-component"
         ></fabric-library>
-
         <color-extractor 
           @apply-colors="onColorsApplied"
           class="tool-component color-component"
         ></color-extractor>
-        
-        <!-- 搭配助手仍为占位 -->
-          <CollocationAssistant
-           class="tool-component assistant-component"
-          ></CollocationAssistant>
+        <CollocationAssistant
+          class="tool-component assistant-component"
+          @select-recommend="onRecommendSelect"
+        ></CollocationAssistant>
       </div>
 
-      <!-- 中间交互区：与AI对话 -->
+      <!-- 中间交互区 -->
       <div class="interaction-area">
         <div class="interaction-title">AI设计对话</div>
-        
-        <!-- 对话内容区 -->
         <div class="chat-content">
-          <!-- 系统提示 -->
           <div class="system-message">
-            请上传参考图片、选择面料或输入描述，我会生成设计方案
+            请上传参考图片、输入公网链接或描述，我会生成设计方案
           </div>
-          
-          <!-- 对话记录 -->
+          <!-- 聊天记录渲染（保持不变） -->
           <div v-for="(msg, index) in chatRecords" :key="index" class="chat-bubble">
             <div class="bubble-avatar">{{ msg.role === 'user' ? '我' : 'AI' }}</div>
             <div class="bubble-content">
-              <!-- 用户消息：可能包含选择的面料或色彩 -->
               <template v-if="msg.role === 'user'">
-                <div v-if="msg.fabric" class="selected-fabric-tag">
-                  已选择面料：{{ msg.fabric.name }}（{{ msg.fabric.type }}）
-                </div>
+                <div v-if="msg.fabric" class="selected-fabric-tag">已选择面料：{{ msg.fabric.name }}</div>
                 <div v-if="msg.colors" class="selected-colors">
                   <span class="tag">已选择色彩：</span>
                   <div class="color-swatch-container">
-                    <div 
-                      v-for="(color, cIndex) in msg.colors" 
-                      :key="cIndex"
-                      class="color-swatch"
-                      :style="{ backgroundColor: color.hex }"
-                      :title="color.hex"
-                    ></div>
+                    <div v-for="(color, cIndex) in msg.colors" :key="cIndex" class="color-swatch" :style="{ backgroundColor: color.hex }" :title="color.hex"></div>
                   </div>
                 </div>
                 <p v-if="msg.text">{{ msg.text }}</p>
                 <div v-if="msg.imageUrl" class="user-image">
-                  <img :src="msg.imageUrl" alt="用户上传图片">
+                  <img :src="msg.imageUrl" alt="用户参考图片">
                 </div>
               </template>
-              
-              <!-- AI消息：生成的方案 -->
               <template v-if="msg.role === 'ai'">
                 <p v-if="msg.text">{{ msg.text }}</p>
                 <div v-if="msg.imageUrl" class="ai-image">
@@ -77,47 +58,56 @@
               </template>
             </div>
           </div>
-          
-          <!-- 加载中提示 -->
           <div v-if="isLoading" class="loading">
             <div class="custom-spinner"></div>
-            <p>加载中...</p>
+            <p>方案生成中...</p>
           </div>
         </div>
         
         <!-- 输入区 -->
         <div class="input-area">
-          <!-- 新增：上传图片按钮 -->
-          <div class="upload-container">
+          <div class="input-controls">
+            <!-- 【新增】公网URL输入框 -->
+            <el-input 
+              v-model="imageUrlInput" 
+              placeholder="在此粘贴公共图片URL" 
+              class="url-input"
+              clearable
+            ></el-input>
+            
             <el-upload
               class="image-uploader"
               action=""
               :auto-upload="false"
               :on-change="handleImageUpload"
               :show-file-list="false"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
+              :disabled="isLoading"
             >
-              <el-button type="primary" icon="el-icon-upload">上传图片</el-button>
+              <el-button type="primary" icon="el-icon-upload" :disabled="!!imageUrlInput">上传本地图片</el-button>
             </el-upload>
           </div>
           
-          <el-input 
-            v-model="userInput" 
-            placeholder="输入设计需求..." 
-            class="text-input"
-          ></el-input>
-          <el-button 
-            type="primary" 
-            @click="sendMessage"
-            class="send-btn"
-            :disabled="!canSendMessage"
-          >
-            发送
-          </el-button>
+          <div class="main-input-row">
+            <el-input 
+              v-model="userInput" 
+              placeholder="输入设计需求，例如：改成赛博朋克风格..." 
+              class="text-input"
+              @keyup.enter.native="sendMessage"
+            ></el-input>
+            <el-button 
+              type="primary" 
+              @click="sendMessage"
+              class="send-btn"
+              :disabled="!canSendMessage"
+            >
+              发送
+            </el-button>
+          </div>
         </div>
       </div>
 
-      <!-- 右侧成果区：保存生成的图片 -->
+      <!-- 右侧成果区 -->
       <div class="gallery-area">
         <div class="gallery-title">我的成果库</div>
         <image-save-list 
@@ -130,567 +120,551 @@
 
 <script>
 import axios from 'axios';
-// 引入组件（保持原有组件引用）
+import request from '@/utils/request'; 
 import FabricLibrary from '@/components/FabricLibrary.vue';
 import ImageSaveList from '@/components/ImageSaveList.vue';
 import ColorExtractor from '@/components/ColorExtractor.vue';
 import CollocationAssistant from '@/components/CollocationAssistant.vue';
-import DirectModelCall from '@/components/DirectModelCall.vue';
 
 export default {
   components: {
     FabricLibrary,
     ImageSaveList,
     ColorExtractor,
-    CollocationAssistant,
-    DirectModelCall
+    CollocationAssistant
+  },
+  mounted() {
+    // 登录状态判断（只执行一次）
+    if (!this.currentUserId) {
+      this.$router.push('/login'); // 未登录跳转到登录页
+    } else {
+      this.loadUserImages(); // 已登录才加载图片
+    }
+    console.log('Vuex用户信息:', this.$store.state.user.userInfo);
+    console.log('当前用户ID:', this.currentUserId);
   },
   data() {
     return {
-      // 对话记录
       chatRecords: [],
-      // 用户输入文本
       userInput: '',
-      // 保存的成果图片
       savedImages: [],
-      // 加载状态
       isLoading: false,
-      // 当前选中的面料（未发送状态）
       currentFabric: null,
-      // 当前选中的颜色（未发送状态）
       currentColors: null,
-      // 当前上传的图片（未发送状态）
-      currentImageUrl: null,
-      // 大模型直连配置（核心：替换为大模型官方信息）
-      aiModelConfig: {
-        // 1. 大模型官方API端点（以火山方舟为例，需按实际文档调整）
-        apiUrl: "https://ark.volcengine.com/api/v3/images/generations",
-        // 2. 你的大模型API Key（从大模型平台获取，如火山引擎控制台）
-        apiKey: "f2390958-8c5a-424a-9021-651e920c2bc4",
-        // 3. 模型ID（保持与之前一致）
-        modelId: "doubao-seededit-3-0-i2i-250628",
-        // 4. 默认示例图片（大模型可访问的公网URL）
+      currentUploadedImageUrl: null,
+      imageUrlInput: '',
+      imgbbApiKey: 'ddfd3ce61ba74d50a1d1167d498e4c0f',
+
+      // 【核心替换】将火山引擎配置替换为Coze图像编辑智能体配置
+      cozeImageEditorConfig: {
+        // 我们将通过代理调用，所以这里不需要apiUrl
+        apiKey: 'pat_mY0OSWqTlyfxYW4cV8fu7vGY6jXupqFhQJ2FvyZfasve8SgKMGmFoFoS5Rshonq5',
+        botId: '7533205966545272882',
+        userId: 'user_' + Math.random().toString(36).substr(2, 9),
+        // 默认图，当用户未提供任何图片时使用
         defaultImageUrl: "https://ark-project.tos-cn-beijing.volces.com/doc_image/seededit_i2i.jpeg"
       },
-      useDirectCall: false,
-      directModelInstance: null
+       currentUserId: this.$store.state.user.userInfo?.id || '',
     };
   },
   computed: {
-    // 判断是否可以发送消息（逻辑不变）
     canSendMessage() {
-      return this.userInput.trim() !== '' || 
+      return !this.isLoading && (
+             this.userInput.trim() !== '' || 
              this.currentFabric !== null || 
              this.currentColors !== null ||
-             this.currentImageUrl !== null;
+             this.currentUploadedImageUrl !== null ||
+             this.imageUrlInput.trim() !== ''
+      );
     }
   },
   methods: {
-    initDirectModelCall() {
-      this.directModelInstance = this.$refs.directModel;
+    // onRecommendSelect, onFabricSelect, onColorsApplied, handleImageUpload, sendMessage, saveToGallery
+    // 这些方法我们保持不变
+    onRecommendSelect(recommend) {
+      this.userInput = `按【${recommend.style}】风格设计：${recommend.desc}`;
+      this.$message.success(`已为你填充${recommend.style}搭配需求`);
     },
-    // 接收面料库选择的面料（逻辑不变）
     onFabricSelect(fabric) {
       this.currentFabric = fabric;
-      if (this.userInput.trim()) {
-        this.userInput += `，使用【${fabric.name}】面料`;
-      } else {
-        this.userInput = `使用【${fabric.name}】面料`;
-      }
       this.$message.success(`已选择面料：${fabric.name}`);
     },
-    // 接收色彩提取器应用的色彩（逻辑不变）
     onColorsApplied(colors) {
-      const displayColors = colors.slice(0, 4);
-      this.currentColors = displayColors;
-      const colorHexList = displayColors.map(c => c.hex).join('、');
-      if (this.userInput.trim()) {
-        this.userInput += `，使用颜色：${colorHexList}`;
-      } else {
-        this.userInput = `使用颜色：${colorHexList}`;
-      }
+      this.currentColors = colors.slice(0, 4);
       this.$message.success('已选择色彩方案');
     },
-    // 处理图片上传（适配大模型：跳过后端，直接使用公网示例图或OSS上传）
     async handleImageUpload(file) {
+      const imageFile = file.raw;
+      if (!imageFile || this.isLoading) return;
       this.isLoading = true;
+      const formData = new FormData();
+      formData.append('image', imageFile);
       try {
-        // 方案说明：
-        // 1. 开发调试：直接使用默认示例图（无需后端/OSS）
-        // 2. 生产环境：替换为OSS/CDN上传逻辑，确保图片为公网可访问URL
-        this.currentImageUrl = this.aiModelConfig.defaultImageUrl;
-        this.$message.success('图片已适配为大模型可访问格式');
-
-        // 【生产环境可选】OSS上传示例（需替换为你的OSS配置）
-        // const formData = new FormData();
-        // formData.append('file', file.raw);
-        // const ossResponse = await axios.post('你的OSS上传接口', formData);
-        // this.currentImageUrl = ossResponse.data.publicUrl; // OSS返回的公网URL
-
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${this.imgbbApiKey}`, {
+          method: 'POST', body: formData,
+        });
+        const result = await response.json();
+        if (result.success) {
+          this.currentUploadedImageUrl = result.data.url;
+          this.imageUrlInput = '';
+          this.$message.success('图片上传成功！');
+        } else {
+          throw new Error(result.error?.message || 'ImgBB API 返回错误');
+        }
       } catch (error) {
-        console.error('图片处理失败：', error);
-        this.$message.error('图片处理失败，请重试');
-        this.currentImageUrl = this.aiModelConfig.defaultImageUrl; // 失败时回退到示例图
+        this.$message.error(`上传失败：${error.message || '未知错误'}`);
       } finally {
         this.isLoading = false;
       }
     },
-    // 发送用户消息（逻辑不变，仅调用直连大模型的generateAIResponse）
     sendMessage() {
       if (!this.canSendMessage) return;
+      const finalImageUrl = this.imageUrlInput.trim() || this.currentUploadedImageUrl;
       const userMessage = {
         role: 'user',
         text: this.userInput,
         fabric: this.currentFabric,
         colors: this.currentColors,
-        imageUrl: this.currentImageUrl
+        imageUrl: finalImageUrl
       };
       this.chatRecords.push(userMessage);
-      // 调用直连大模型的方法
-      this.generateAIResponse({
-        fabric: this.currentFabric,
-        colors: this.currentColors,
-        image: this.currentImageUrl,
-        prompt: this.userInput
-      });
-      // 重置输入状态
+      this.generateAIResponse(finalImageUrl);
       this.userInput = '';
       this.currentFabric = null;
       this.currentColors = null;
-      this.currentImageUrl = null;
+      this.currentUploadedImageUrl = null;
+      this.imageUrlInput = '';
     },
-    // 核心修改：直接调用大模型API，完全绕开后端
-    async generateAIResponse({ fabric, colors, image, prompt }) {
-      this.isLoading = true;
+     saveToGallery(imageUrl, title) {
+      // 这里的 title 可以根据你的需要调整，例如从 AI 的回复中提取
+      const imageName = title || `设计方案_${new Date().getTime()}`; 
+      this.saveImageToBackend({ imageUrl, imageName });
+    },
+     // DetailOptimization.vue - methods
+    // DetailOptimization.vue - methods
+    async saveImageToBackend(imageInfo) {
       try {
-        // 1. 构建完整提示词（保留面料、颜色逻辑）
-        let fullPrompt = prompt || '';
-        if (fabric) fullPrompt += ` 使用【${fabric.name}】面料（${fabric.type}）`;
-        if (colors) {
-          const colorHexList = colors.map(c => c.hex).join('、');
-          fullPrompt += ` 搭配颜色：${colorHexList}`;
-        }
-        if (!fullPrompt.trim()) fullPrompt = "根据素材生成设计方案";
+        // ⭐ 核心修改在这里：生成 ISO 字符串并去除毫秒部分 ⭐
+        const now = new Date();
+        // toISOString() 格式通常是 "YYYY-MM-DDTHH:mm:ss.sssZ" (24个字符 + 毫秒 + Z)
+        // .slice(0, 19) 会截取到秒，去除毫秒和 Z
+        // 然后我们再手动加上 'Z'
+        const generateTimeFormatted = now.toISOString().slice(0, 19) + 'Z'; 
 
-        // 2. 处理图片URL（确保大模型可访问）
-        let imageUrl = image;
-        // 本地base64图片替换为示例图
-        if (imageUrl && imageUrl.startsWith('data:image/')) {
-          imageUrl = this.aiModelConfig.defaultImageUrl;
-          this.$message.warning('本地图片已替换为大模型可访问的示例图');
-        }
-        // 未上传图片时使用默认示例图
-        const finalImageUrl = imageUrl || this.aiModelConfig.defaultImageUrl;
-
-        // 3. 构建大模型请求参数（按官方API格式）
-        const requestData = {
-          model: this.aiModelConfig.modelId,          // 模型ID
-          prompt: fullPrompt,                         // 完整提示词
-          image: finalImageUrl,                       // 参考图片URL（i2i必需）
-          seed: Math.floor(Math.random() * 1000),     // 随机种子（保证多样性）
-          guidance_scale: 5.5,                        // 引导强度（3-7效果最佳）
-          response_format: "url",                     // 返回图片URL（而非base64）
-          size: "1024x1024",                          // 生成图片尺寸（按模型支持调整）
-          watermark: true                             // 添加水印（可选）
+        const imageData = {
+          userId: this.currentUserId,
+          imageName: imageInfo.imageName, // 图片名称
+          imageUrl: imageInfo.imageUrl,   // 图片URL
+          generateTime: generateTimeFormatted // 使用处理后的日期字符串
         };
-        console.log('直连大模型接口：', this.aiModelConfig.apiUrl);
-        console.log('大模型请求参数：', requestData);
+        console.log('保存图片到后端的数据:', imageData);
 
-        // 4. 发送请求：直接调用大模型API（无需后端中转）
-        const response = await axios.post(
-          this.aiModelConfig.apiUrl,
-          requestData,
-          { 
-            headers: { 
-              'Content-Type': 'application/json',
-              // 大模型认证：通过Authorization头传递API Key（官方标准）
-              'Authorization': `Bearer ${this.aiModelConfig.apiKey}`
-            } 
-          }
-        );
-
-        // 5. 解析大模型响应（按官方返回格式处理）
-        const resData = response.data;
-        // 校验响应合法性（不同模型返回格式可能不同，需按文档调整）
-        if (resData.code !== 200) {
-          throw new Error(`大模型错误：${resData.msg || '未知错误'}`);
-        }
-        if (!resData.data || resData.data.length === 0) {
-          throw new Error('大模型返回空结果，未生成图片');
-        }
-        const generatedImageUrl = resData.data[0].url;
-        if (!generatedImageUrl) {
-          throw new Error('生成的图片URL为空');
-        }
-
-        // 6. 添加AI回复到对话记录（逻辑不变）
-        let responseText = '';
-        if (fabric) responseText = `已用【${fabric.name}】面料生成方案：`;
-        else if (colors) responseText = `已用指定色彩生成方案：`;
-        else if (image) responseText = `已根据图片生成方案：`;
-        else responseText = `已根据需求生成方案：`;
-
-        this.chatRecords.push({
-          role: 'ai',
-          text: responseText,
-          imageUrl: generatedImageUrl,
-          title: fabric ? `${fabric.name}设计方案` : 
-                 colors ? '色彩搭配方案' : 'AI生成方案'
-        });
-
-      } catch (error) {
-        // 精细化错误提示（针对大模型直连场景）
-        console.error('大模型调用完整错误日志：', error);
-        let errorMsg = '图片生成失败，请重试';
-        // 按错误类型提示具体原因
-        if (error.message.includes('401')) {
-          errorMsg = '❌ API Key无效或过期，请在大模型平台重新获取';
-        } else if (error.message.includes('403')) {
-          errorMsg = '❌ 无模型使用权限，请在大模型平台开通权限';
-        } else if (error.message.includes('404')) {
-          errorMsg = `❌ 大模型API地址错误：${this.aiModelConfig.apiUrl}`;
-        } else if (error.message.includes('Network Error')) {
-          errorMsg = '❌ 网络错误，无法连接大模型服务（检查网络或API地址）';
-        } else if (error.message.includes('模型未开通')) {
-          errorMsg = '❌ 当前模型未开通，请在大模型平台激活服务';
+        const response = await request.post('/generatedImage/save', imageData);
+        
+        if (response.data && response.data.code === 200) {
+          this.$message.success('图片已保存到成果库！');
+          this.loadUserImages(); // 保存成功后，重新加载列表以更新显示
         } else {
-          errorMsg = `❌ 生成失败：${error.message || '未知错误'}`;
+          this.$message.error(response.data.msg || '保存图片失败');
         }
-        // 添加错误回复到对话
-        this.chatRecords.push({ role: 'ai', text: errorMsg, imageUrl: null });
-      } finally {
-        // 无论成功失败，结束加载状态
-        this.isLoading = false;
+      } catch (error) {
+        console.error('保存图片失败:', error);
+        this.$message.error('保存图片异常');
       }
     },
-    // 保存图片到成果库（逻辑不变）
-    saveToGallery(imageUrl, title) {
-      if (this.savedImages.length >= 4) this.savedImages.shift();
-      this.savedImages.push({
-        imageUrl: imageUrl,
-        imageName: title || `设计方案_${new Date().getTime()}`
-      });
-      this.$message.success('已保存到成果库');
-    }
+async generateAIResponse(imageUrl) {
+  console.log("🔴[DEBUG] 你即将发送 POST /__coze_proxy_submit__");
+  this.isLoading = true;
+  
+  // 1. 先添加一个占位消息，用于实时更新
+  const aiMsgPlaceholder = {
+    role: 'ai',
+    text: '已接单，AI正在全力创作中，请耐心等待...', // 初始文本
+    imageUrl: '', // 初始为空
+    title: `AI设计方案`
+  };
+  this.chatRecords.push(aiMsgPlaceholder);
+  const feedbackMessageIndex = this.chatRecords.length - 1; // 获取这个占位消息的索引
+
+  let fullPrompt = `编辑需求：${this.userInput.trim() || '请根据素材进行优化'}`;
+  if (this.currentFabric) fullPrompt += `，使用【${this.currentFabric.name}】面料`;
+  if (this.currentColors) {
+    const colorHexList = this.currentColors.map(c => c.hex).join('、');
+    fullPrompt += `，搭配颜色：${colorHexList}`;
   }
-};
+  const finalApiImageUrl = imageUrl || this.cozeImageEditorConfig.defaultImageUrl;
+  fullPrompt += `，参考图片URL：${finalApiImageUrl}`;
+
+  try {
+    const response = await fetch('/__coze_proxy_submit__', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.cozeImageEditorConfig.apiKey}`
+      },
+      body: JSON.stringify({
+        bot_id: this.cozeImageEditorConfig.botId,
+        user_id: this.cozeImageEditorConfig.userId,
+        stream: true,
+        auto_save_history: true,
+        additional_messages: [
+          {
+            role: "user",
+            content: fullPrompt,
+            content_type: "text"
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`请求失败: ${response.status}, 响应内容: ${errorText}`);
+      throw new Error(`API 请求失败: ${response.status} ${response.statusText}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullReplyContent = ''; // 用于拼接 AI 完整的文本回复（包括 Markdown 链接）
+    let finalImageUrlFromAI = ''; // 用于存储最终提取到的图片 URL
+    let currentEvent = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n').filter(line => line.trim());
+
+      for (const line of lines) {
+        if (line.startsWith('event:')) {
+          currentEvent = line.replace('event:', '').trim();
+          continue;
+        }
+
+        if (line.startsWith('data:')) {
+          const dataStr = line.replace('data:', '').trim();
+          if (dataStr) {
+            try {
+              const data = JSON.parse(dataStr);
+
+              // 优先从 tool_response 中提取 URL（如果它先出现且可靠）
+              if (data.type === 'tool_response' && data.content) {
+                try {
+                  const toolResponse = JSON.parse(data.content);
+                  if (toolResponse.msg === 'success' && typeof toolResponse.data === 'string' && toolResponse.data.startsWith('https://')) {
+                    finalImageUrlFromAI = toolResponse.data;
+                    console.log("从 tool_response 提取到图片 URL:", finalImageUrlFromAI);
+                  }
+                } catch (e) {
+                  console.warn("解析 tool_response 的 content 失败:", e);
+                }
+              }
+              // 从 answer 类型中拼接文本，并尝试提取 Markdown 链接
+              else if (data.type === 'answer' && data.content) {
+                fullReplyContent += data.content; // 拼接完整的文本内容
+                
+                // 实时更新占位消息的文本
+                // 注意：这里只更新文本，图片会在流结束后统一设置
+                this.$set(this.chatRecords[feedbackMessageIndex], 'text', `AI正在生成... ${fullReplyContent}`);
+
+                const match = data.content.match(/\[.*?\]\((https?:\/\/[^\s)]+\.(?:jpg|png|jpeg|gif|webp|bmp))\)/);
+                if (match && match[1]) {
+                  finalImageUrlFromAI = match[1]; // 提取到 URL
+                  console.log("从AI文字回复 (answer) 中提取到图片 URL:", finalImageUrlFromAI);
+                }
+              }
+
+            } catch (e) {
+              console.warn('解析流数据片段失败:', e);
+            }
+          }
+        }
+      }
+    }
+    if (finalImageUrlFromAI) {
+      // 移除 fullReplyContent 中的 Markdown 链接文本，只显示纯文本部分
+      const displayText = fullReplyContent.replace(/\[.*?\]\((https?:\/\/[^\s)]+\.(?:jpg|png|jpeg|gif|webp|bmp))\)/g, '').trim();
+      
+      // 更新占位消息的所有属性
+      this.$set(this.chatRecords[feedbackMessageIndex], 'text', displayText);
+      this.$set(this.chatRecords[feedbackMessageIndex], 'imageUrl', finalImageUrlFromAI);
+      // this.$set(this.chatRecords[feedbackMessageIndex], 'title', `AI设计方案`); // 标题可以保持不变
+
+      // 将完整的回复（包含 Markdown）保存到 lastAiReply，以便 ImageViewer 处理
+      this.lastAiReply = fullReplyContent; 
+
+    } else {
+      // 如果没有提取到图片 URL，但 AI 仍然返回了文字，则显示文字
+      if (fullReplyContent.trim()) {
+        this.$set(this.chatRecords[feedbackMessageIndex], 'text', fullReplyContent.trim());
+        this.lastAiReply = fullReplyContent;
+      } else {
+        // 如果既没有图片 URL，也没有文字回复，才抛出错误
+        throw new Error('AI 生成成功，但未找到图片 URL 或有效文本回复');
+      }
+    }
+
+  } catch (error) {
+    console.error('Coze任务全流程失败：', error);
+    const errorMsg = error.message || '未知网络错误';
+    
+    // 更新占位消息为错误信息
+    if (this.chatRecords[feedbackMessageIndex]) {
+        this.$set(this.chatRecords[feedbackMessageIndex], 'text', `❌ 生成失败：${errorMsg}`);
+        this.$set(this.chatRecords[feedbackMessageIndex], 'imageUrl', ''); // 清空图片
+    }
+  } finally {
+    this.isLoading = false;
+    this.$nextTick(() => {
+        const container = this.$el.querySelector('.chat-messages');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    });
+  }
+},
+ async loadUserImages() {
+      try {
+        const queryDto = {
+          userId: this.currentUserId,
+          pageNum: 1, // 假设你需要分页，或者只获取最新几张
+          pageSize: 4 // 只显示最新的4张，与 CozeChat 保持一致
+        };
+        console.log('前端查询参数：', queryDto);
+
+        // 假设你的后端查询接口是 /generatedImage/query
+        const response = await request.post('/generatedImage/query', queryDto);
+        
+        console.log('后端响应完整数据：', response); 
+        console.log('后端响应data字段：', response.data);
+
+        if (response.data && response.data.code === 200) { 
+          console.log('后端返回的图片列表：', response.data.data);
+
+          // CozeChat 示例中后端已排序，直接取 slice
+          this.savedImages = response.data.data.slice(0, 4);
+          
+          console.log('前端savedImages赋值后：', this.savedImages); 
+        } else {
+          console.warn('后端返回非成功状态：', response.data);
+          this.$message.error(response.data.msg || '加载成果库失败');
+        }
+      } catch (error) {
+        console.error('加载成果库失败：', error);
+        this.$message.error('加载成果库异常');
+      }
+    },
+    /**
+     * 【新增】轮询辅助函数
+     * @param {string} conversationId “取件凭证”
+     * @returns {Promise<object>} 包含最终结果的完整对象
+     */
+    async pollForResult(conversationId) {
+      const maxAttempts = 20; // 最多轮询20次
+      const delay = 3000;     // 每次间隔3秒
+
+      for (let i = 0; i < maxAttempts; i++) {
+        console.log(`第 ${i + 1} 次尝试取件...`);
+        try {
+          const retrieveResponse = await axios.get(
+            '/__coze_proxy_retrieve__',
+            {
+              params: {
+                conversation_id: conversationId,
+                bot_id: this.cozeImageEditorConfig.botId
+              },
+              headers: { 'Authorization': `Bearer ${this.cozeImageEditorConfig.apiKey}` }
+            }
+          );
+          
+          const data = retrieveResponse.data?.data;
+          
+          if (data?.status === 'completed') {
+            console.log('🎉 图片生成完成！', data);
+            return data; // 返回成功的结果
+          } else if (data?.status === 'failed') {
+            throw new Error(`图片生成任务失败: ${data.last_error?.msg || '未知原因'}`);
+          }
+          // 如果是 in_progress，则继续等待
+        } catch (error) {
+           // 如果是取件API本身报错，直接抛出
+           throw new Error(`取件API请求失败: ${error.message}`);
+        }
+
+        // 等待指定时间后进行下一次轮询
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+
+      // 如果轮询次数用尽还未成功
+      throw new Error('图片生成超时，请稍后再试');
+    }
+}
+}
 </script>
 
 <style scoped>
-/* 原有样式保持不变 */
+/* 为了新加的输入框，微调一下样式 */
+.input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid #e0e0e0;
+}
+.input-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.url-input {
+  flex-grow: 1;
+}
+.main-input-row {
+  display: flex;
+  gap: 8px;
+}
+.text-input {
+  flex-grow: 1;
+}
+/* 其他样式保持不变 */
 .detail-optimization {
   padding: 20px;
-  background-color: #f9f9f9;
-  /* 关键修改：移除min-height: 100vh的强制限制，让内容自然撑开高度 */
-  min-height: auto;
+  background-color: #f4f6f8;
+  height: 100vh;
   box-sizing: border-box;
 }
-
 .page-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
-
 .page-header h1 {
-  font-size: 24px;
+  font-size: 28px;
   color: #333;
-  margin: 0 0 8px;
 }
-
 .page-header p {
-  font-size: 14px;
-  color: #666;
-  margin: 0;
+  color: #888;
 }
-
 .main-layout {
   display: grid;
-  grid-template-columns: 300px 1fr 300px;
+  grid-template-columns: 280px 1fr 300px;
   gap: 20px;
-  /* 关键修改：将固定高度改为最小高度，允许内容超出时自然扩展 */
-  min-height: calc(100vh - 100px);
-  /* 新增：当内容超出视口时，允许页面整体滚动 */
+  height: calc(100vh - 120px);
 }
-
-.tools-area {
-  background: white;
+.tools-area, .interaction-area, .gallery-area {
+  background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  /* 关键修改：工具区使用最小高度而非固定高度，允许内容扩展 */
-  min-height: 500px;
 }
-
-.tools-title {
-  padding: 16px;
-  font-size: 16px;
-  font-weight: 600;
+.tools-title, .interaction-title, .gallery-title {
+  padding: 15px;
+  font-weight: bold;
   color: #333;
   border-bottom: 1px solid #eee;
 }
-
-/* 工具组件样式调整 - 增加高度上限，允许更多内容展示 */
 .tool-component {
-  padding: 16px;
-  border-bottom: 1px solid #eee;
-  /* 提高最大高度限制 */
-  max-height: 500px;
-  overflow-y: auto;
+  margin: 10px;
 }
-
-/* 面料库组件：增加高度占比 */
-.fabric-component {
-  max-height: 50%; /* 从40%提高到50% */
-  min-height: 300px; /* 提高最小高度 */
-}
-
-/* 色彩提取器组件：增加高度占比 */
-.color-component {
-  max-height: 50%; /* 从40%提高到50% */
-  min-height: 200px; /* 提高最小高度 */
-}
-
-/* 新增色彩选择相关样式 */
-.selected-colors {
-  margin-bottom: 8px;
-  padding: 8px;
-  background-color: #fff8e6;
-  border-radius: 4px;
-}
-
-.tag {
-  font-size: 12px;
-  color: #fa8c16;
-  font-weight: 500;
-}
-
-.color-swatch-container {
-  display: inline-flex;
-  margin-left: 8px;
-  gap: 4px;
-}
-
-.color-swatch {
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
-  border: 1px solid #eee;
-  cursor: pointer;
-}
-
-/* 其他原有样式保持不变 */
-.tool-placeholder {
-  padding: 20px 16px;
-  text-align: center;
-  border-bottom: 1px solid #eee;
-  background-color: #fafafa;
-}
-
-.placeholder-icon {
-  font-size: 24px;
-  margin-bottom: 8px;
-  color: #999;
-}
-
-.placeholder-text {
-  font-size: 14px;
-  color: #666;
-  margin: 0 0 4px;
-}
-
-.placeholder-desc {
-  font-size: 12px;
-  color: #ccc;
-  margin: 0;
-}
-
 .interaction-area {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  /* 关键修改：交互区使用最小高度，允许内容无限扩展 */
-  min-height: 600px;
+  height: 100%;
 }
-
-.interaction-title {
-  padding: 16px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #eee;
-}
-
 .chat-content {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-  /* 新增：增加底部内边距，让最后一条消息有更多空间 */
-  padding-bottom: 40px;
+  flex-grow: 1; /* 保持 flex-grow: 1 以占据可用空间 */
+  overflow-y: auto; /* 启用垂直滚动条 */
+  padding: 15px;
+  /* ⭐ 新增以下两行 ⭐ */
+  max-height: calc(100vh - 100px); /* 根据实际布局调整此值，这是一个示例 */
+                                 /* 100vh - (页面顶部header + 输入区 + 其他固定高度) */
+  min-height: 200px; /* 也可以设置一个最小高度 */
 }
-
+/* 确保父容器 interaction-area 也有确定的高度，才能让 flex-grow: 1 生效 */
+.interaction-area {
+  height: 100%; /* 保持这个，确保它有明确的高度 */
+  display: flex; /* 确保是 flex 容器 */
+  flex-direction: column; /* 垂直布局 */
+}
 .system-message {
-  padding: 12px 16px;
-  background-color: #f5f9ff;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 16px;
+  text-align: center;
+  color: #aaa;
+  font-size: 12px;
+  margin-bottom: 15px;
 }
-
 .chat-bubble {
   display: flex;
-  margin-bottom: 16px;
-  align-items: flex-start;
+  margin-bottom: 15px;
+  max-width: 90%;
 }
-
-.bubble-avatar {
+.chat-bubble .bubble-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #eee;
+  background-color: #007bff;
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  color: #333;
-  margin-right: 12px;
+  font-weight: bold;
+  margin-right: 10px;
   flex-shrink: 0;
 }
-
-.bubble-content {
-  flex: 1;
+.chat-bubble .bubble-content {
+  background-color: #f0f0f0;
+  border-radius: 12px;
+  padding: 10px 15px;
+  word-break: break-word;
 }
-
-.selected-fabric-tag {
-  display: inline-block;
-  padding: 4px 8px;
-  background-color: #e6f7ff;
-  color: #1890ff;
-  border-radius: 4px;
-  font-size: 12px;
-  margin-bottom: 8px;
-}
-.user-image img {
-  max-width: 100%; /* 不超过容器宽度 */
-  max-height: 300px; /* 限制最大高度 */
-  object-fit: contain; /* 保持比例，不拉伸 */
-  border-radius: 4px;
-  margin-top: 10px;
-}
-
-/* 对话内容容器限制宽度，避免图片过宽 */
-.chat-content {
-  max-width: 100%;
-  padding: 10px;
-  box-sizing: border-box;
-}
-.ai-image {
+.chat-bubble .user-image, .chat-bubble .ai-image {
   margin-top: 8px;
-  border-radius: 4px;
-  overflow: hidden;
-  position: relative;
-  /* 新增：允许图片容器扩展 */
-  margin-bottom: 16px;
 }
-
-/* AI生成的图片样式（如果也有过大问题） */
+.chat-bubble .user-image img, .chat-bubble .ai-image img {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 6px;
+}
 .ai-image img {
-  max-width: 100%;
-  max-height: 400px;
-  object-fit: contain;
-  border-radius: 4px;
+  cursor: pointer;
 }
-
 .image-action {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 8px;
-  background: rgba(0,0,0,0.5);
-  color: white;
   font-size: 12px;
-  text-align: center;
+  color: #888;
+  margin-top: 4px;
 }
-
 .loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px;
-  color: #666;
+  text-align: center;
+  color: #888;
 }
-
 .custom-spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid #ddd;
-  border-top-color: #1890ff;
+  margin: 10px auto;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 8px;
 }
-
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
-
-.input-area {
-  padding: 16px;
-  border-top: 1px solid #eee;
+.selected-fabric-tag, .selected-colors {
+  background-color: #e9f5ff;
+  border: 1px solid #d0ebff;
+  border-radius: 4px;
+  padding: 5px 8px;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+.color-swatch-container {
   display: flex;
-  gap: 12px;
+  gap: 5px;
+  margin-top: 5px;
 }
-
-.text-input {
-  flex: 1;
-}
-
-.send-btn {
-  width: 80px;
-}
-
-.gallery-area {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  /* 关键修改：图库区域使用最小高度，允许内容扩展 */
-  min-height: 600px;
-}
-
-.gallery-title {
-  padding: 16px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #eee;
-}
-
-/* 响应式调整 - 保持原有逻辑，确保在小屏幕上也能扩展 */
-@media (max-width: 1200px) {
-  .main-layout {
-    grid-template-columns: 260px 1fr 260px;
-  }
-}
-
-@media (max-width: 992px) {
-  .main-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
-    height: auto; /* 小屏幕下完全由内容决定高度 */
-  }
-  /* 小屏幕下增加各区域最小高度，确保内容展示空间 */
-  .tools-area, .interaction-area, .gallery-area {
-    min-height: 500px;
-  }
+.color-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
 }
 </style>

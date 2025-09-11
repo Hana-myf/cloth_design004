@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="zh-CN"> <!-- 补充语言属性，优化SEO和兼容性 -->
 
 <head>
   <meta charset="utf-8">
@@ -7,14 +7,29 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <link rel="icon" href="/logo.png">
   <title>纤云速织 - 服装设计 | 行业新闻 | 设计建议 </title>
+
+  <!-- 1. 核心修改：优先引入火山引擎TOS SDK官方脚本（必须放在最前面） -->
+  <script src="https://tos-sdk.volces.com/tos-js-sdk/latest/tos-js-sdk.min.js"></script>
+
+  <!-- 2. （可选）如果你的项目使用Element UI等依赖，也建议在此引入（保持加载顺序） -->
+  <!-- 例如Element UI的CSS和JS（如果项目中用到）： -->
+  <!-- <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css"> -->
+  <!-- <script src="https://unpkg.com/vue/dist/vue.js"></script> -->
+  <!-- <script src="https://unpkg.com/element-ui/lib/index.js"></script> -->
 </head>
 
 <body>
   <div id="app"></div>
 </body>
 
+<!-- 样式建议：将style移到head内，符合HTML规范 -->
 <style>
-  
+  /* 可保留你的全局样式（如果有） */
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+  }
 </style>
 
 </html>
