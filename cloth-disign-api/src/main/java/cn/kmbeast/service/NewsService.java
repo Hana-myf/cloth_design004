@@ -10,7 +10,7 @@ import cn.kmbeast.pojo.vo.NewsVO;
 import java.util.List;
 
 /**
- * 健康资讯业务逻辑接口
+ * 时尚资讯业务逻辑接口
  */
 public interface NewsService {
 

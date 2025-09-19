@@ -13,7 +13,7 @@ public class NewsSaveQueryDto extends QueryDto {
      */
     private Integer userId;
     /**
-     * 健康资讯ID
+     * 时尚资讯ID
      */
     private Integer newsId;
 
