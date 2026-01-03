@@ -22,5 +22,20 @@ mybatis:
   mapper-locations: classpath:mapper/*.xml
 ark:
   api-key: "f2390958-8c5a-424a-9021-651e920c2bc4"
+dressup:
+  tryon:
+    api:
+      url: https://platform.openai.com/docs/api-reference/images/create?lang=curl # 替换为你的实际外部AI服务地址
 
+# OpenAI 配置
+openai:
+  api:
+    key: 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
+    base: ${OPENAI_API_BASE:https://api.openai.com}
+
+# 可选 HTTP 代理（如需访问外网）
+http:
+  proxy:
+    host: 127.0.0.1
+    port: 7890
 

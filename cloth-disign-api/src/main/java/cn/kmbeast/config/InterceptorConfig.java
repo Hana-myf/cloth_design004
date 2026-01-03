@@ -26,7 +26,9 @@ public class InterceptorConfig implements WebMvcConfigurer {
                         API + "/user/register",
                         API + "/file/upload",
                         API + "/file/getFile",
-                        API + "/api/proxy/generate-image"
+                        API + "/api/proxy/generate-image",
+                        API + "/dressup/**",
+                        API + "/proxy/**"
                 );
     }
 }

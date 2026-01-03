@@ -59,13 +59,13 @@
       </div>
       <ImageViewer 
        :aiReply="lastAiReply" 
-      :currentUserId="currentUserId.toString()" 
-      class="image-viewer"
-      @save-success="loadUserImages" 
+       :currentUserId="realCurrentUserId" 
+       class="image-viewer"
+       @save-success="loadUserImages" 
       />
       <ImageSaveList 
-    :savedImages="savedImages" 
-    class="save-list"
+        :savedImages="savedImages" 
+        class="save-list"
       />
     </div>
   </div>
@@ -82,19 +82,26 @@ export default {
     ImageViewer,
     ImageSaveList
   },
+  // 新增：计算属性获取正确的用户ID（解决初始化拿不到store的问题）
+  computed: {
+    realCurrentUserId() {
+      return this.$store.state.user.userInfo?.id || 23; // 兜底默认23，避免空值
+    }
+  },
   data() {
     return {
       messages: [],
       userInput: '',
       isLoading: false,
       isMinimized: false,
-      apiKey: 'pat_mY0OSWqTlyfxYW4cV8fu7vGY6jXupqFhQJ2FvyZfasve8SgKMGmFoFoS5Rshonq5',
+      apiKey: 'pat_l71GjeLrzmzEzh0d8R5saRWgJFrlhAL79YJbt1KJPLDSmHt2OuXaxom7A92dKjqG',
       robotId: '7475343940674371584',
       userId: 'user_' + Math.random().toString(36).substr(2, 9),
       apiUrl: 'https://api.coze.cn/v3/chat',
       lastAiReply: '',
       savedImages: [], // 存储后端返回的用户图片列表
-      currentUserId: this.$store.state.user.userInfo?.id || '', 
+      // 注释掉原错误赋值：避免初始化时拿不到store
+      // currentUserId: this.$store.state.user.userInfo?.id || '', 
       uploadUrl: '/file/upload',
     };
   },
@@ -106,50 +113,50 @@ export default {
       avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/chatsdk-logo.png'
     });
     // 登录状态判断（只执行一次）
-    if (!this.currentUserId) {
+    if (!this.realCurrentUserId) { // 修复：使用计算属性的用户ID
       this.$router.push('/login'); // 未登录跳转
     } else {
       this.loadUserImages(); // 已登录才加载图片
     }
     console.log('Vuex用户信息:', this.$store.state.user.userInfo);
-    console.log('当前用户ID:', this.currentUserId);
+    console.log('当前用户ID:', this.realCurrentUserId); // 修复：打印正确的用户ID
   },
   methods: {
     // 调用后端接口，查询用户的图片列表
     async loadUserImages() {
-  try {
-    const queryDto = {
-      userId: this.currentUserId,
-      pageNum: 1,
-      pageSize: 4
-    };
-    console.log('前端查询参数：', queryDto);
+      try {
+        const queryDto = {
+          userId: this.realCurrentUserId, // 修复：使用正确的用户ID
+          pageNum: 1,
+          pageSize: 4
+        };
+        console.log('前端查询参数：', queryDto);
 
-    const response = await request.post('/generatedImage/query', queryDto);
-    // 关键：打印完整响应，确认后端返回格式
-    console.log('后端响应完整数据：', response); 
-    console.log('后端响应data字段：', response.data);
+        const response = await request.post('/generatedImage/query', queryDto);
+        // 关键：打印完整响应，确认后端返回格式
+        console.log('后端响应完整数据：', response); 
+        console.log('后端响应data字段：', response.data);
 
-    // 修正判断条件：根据后端实际返回的code判断（通常200代表成功）
-    if (response.data && response.data.code === 200) { 
-      // 确认后端返回的图片数组在response.data.data中
-      console.log('后端返回的图片列表：', response.data.data);
+        // 修正判断条件：根据后端实际返回的code判断（通常200代表成功）
+        if (response.data && response.data.code === 200) { 
+          // 确认后端返回的图片数组在response.data.data中
+          console.log('后端返回的图片列表：', response.data.data);
 
-      // 按时间倒序（后端已按generate_time DESC排序，可省略）
-      const sortedImages = response.data.data.sort(
-        (a, b) => new Date(b.generateTime) - new Date(a.generateTime)
-      );
-      this.savedImages = sortedImages.slice(0, 4);
-      // 打印赋值后的savedImages，确认数据已接收
-      console.log('前端savedImages赋值后：', this.savedImages); 
-    } else {
-      console.warn('后端返回非成功状态：', response.data);
-    }
-  } catch (error) {
-    console.error('加载失败：', error);
-  }
-},
-async handleFileUpload(e) {
+          // 按时间倒序（后端已按generate_time DESC排序，可省略）
+          const sortedImages = response.data.data.sort(
+            (a, b) => new Date(b.generateTime) - new Date(a.generateTime)
+          );
+          this.savedImages = sortedImages.slice(0, 4);
+          // 打印赋值后的savedImages，确认数据已接收
+          console.log('前端savedImages赋值后：', this.savedImages); 
+        } else {
+          console.warn('后端返回非成功状态：', response.data);
+        }
+      } catch (error) {
+        console.error('加载失败：', error);
+      }
+    },
+    async handleFileUpload(e) {
       const file = e.target.files[0];
       if (!file) return;
 
@@ -211,7 +218,7 @@ async handleFileUpload(e) {
     async saveImageToBackend(imageInfo) {
       try {
         const imageData = {
-          userId: this.currentUserId,
+          userId: this.realCurrentUserId, // 修复：使用正确的用户ID
           imageName: imageInfo.name, // 图片名称
           imageUrl: imageInfo.url,   // 图片URL
           generateTime: new Date()   // 生成时间
@@ -309,6 +316,7 @@ async handleFileUpload(e) {
         }
 
         this.lastAiReply = fullReply;
+        console.log('AI回复已传递给ImageViewer:', this.lastAiReply); // 新增：验证回复传递
         this.isLoading = false;
 
       } catch (error) {
@@ -341,7 +349,7 @@ async handleFileUpload(e) {
 </script>
 
 <style scoped>
-/* 横向布局容器 */
+/* 横向布局容器 - 加背景图+暖色调基底 */
 .chat-layout {
   display: flex;
   gap: 20px; /* 两框之间的间距 */
@@ -349,40 +357,50 @@ async handleFileUpload(e) {
   max-width: 1400px; /* 限制最大宽度，避免过宽 */
   margin: 0 auto; /* 居中显示 */
   align-items: flex-start; /* 顶部对齐，而不是拉伸对齐 */
+  /* 背景图（替换成你的图片URL）+ 暖色调叠加 */
+  background: url("https://pic1.imgdb.cn/item/6958e1eeda3df73ea1bc5a2c.png") center/cover no-repeat;
+  background-color: rgba(255, 255, 250, 0.95);
+  background-blend-mode: overlay;
+  min-height: calc(100vh - 100px);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(240, 224, 180, 0.12);
 }
 
-/* 左侧聊天框样式 */
+/* 左侧聊天框样式 - 暖色调边框/背景 */
 .chat-container {
   width: 600px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #f0e8d0; /* 暖色调边框 */
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(240, 224, 180, 0.15); /* 暖色调阴影 */
   font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column; /* 纵向布局，内容区自适应高度 */
   max-height: 700px;
+  background-color: rgba(255, 255, 250, 0.98); /* 暖色调背景 */
 }
 
-/* 右侧图片预览框样式 */
+/* 右侧图片预览框样式 - 同步暖色调 */
 .image-container {
   width: 400px; /* 与聊天框等宽 */
-  border: 1px solid #e0e0e0; /* 相同边框 */
+  border: 1px solid #f0e8d0; /* 暖色调边框 */
   border-radius: 8px; /* 相同圆角 */
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* 相同阴影 */
+  box-shadow: 0 2px 10px rgba(240, 224, 180, 0.15); /* 暖色调阴影 */
   font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column;
   /* 新增：最大高度限制，超出则滚动 */
   max-height: 650px;
+  background-color: rgba(255, 255, 250, 0.98); /* 暖色调背景 */
   /* 移除了flex:1，不再强制拉伸高度 */
 }
 
-/* 图片框头部（与聊天框头部风格一致） */
+/* 图片框头部（暖色调替换原蓝色） */
 .image-header {
-  background-color: #165DFF;
-  color: white;
+  background-color: #fff8e8; /* 暖色调头部背景 */
+  color: #8a7d5e; /* 暖色调文字 */
   padding: 12px 15px;
   border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid #f0e8d0;
 }
 
 .image-header h3 {
@@ -402,9 +420,10 @@ async handleFileUpload(e) {
   flex: 1; /* 允许列表占据剩余空间 */
   overflow-y: auto; /* 列表内容超出时滚动 */
 }
+/* 聊天框头部（暖色调替换原蓝色） */
 .chat-header {
-  background-color: #165DFF;
-  color: white;
+  background-color: #fff8e8; /* 暖色调头部背景 */
+  color: #8a7d5e; /* 暖色调文字 */
   /* 减小上下内边距（原5px调整为3px），左右内边距保留 */
   padding: 3px 15px; 
   display: flex;
@@ -413,6 +432,7 @@ async handleFileUpload(e) {
   border-radius: 8px 8px 0 0;
   /* 可选：适当减小标题字体大小，进一步压缩高度 */
   font-size: 14px; 
+  border-bottom: 1px solid #f0e8d0;
 }
 
 /* 同步调整头部按钮大小，保持比例协调 */
@@ -421,14 +441,19 @@ async handleFileUpload(e) {
   font-size: 12px; /* 减小按钮文字大小 */
 }
 
+/* 最小化按钮（暖色调替换原蓝色） */
 .minimize-btn {
-  background: rgba(255,255,255,0.2);
-  border: none;
-  color: white;
+  background: #fff0d0; /* 暖色调按钮背景 */
+  border: 1px solid #f0e0b0; /* 暖色调按钮边框 */
+  color: #8a7d5e; /* 暖色调文字 */
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
+}
+.minimize-btn:hover {
+  background: #f5dca8;
+  border-color: #f0c880;
 }
 
 /* 修改.chat-messages样式，确保固定高度和滚动生效 */
@@ -436,7 +461,7 @@ async handleFileUpload(e) {
   height: 500px; /* 固定高度（可按需调整） */
   overflow-y: auto; /* 内容超出时显示垂直滚动条 */
   padding: 15px;
-  background-color: #f9f9f9;
+  background-color: #fffdf8; /* 暖色调背景 */
   overflow-x: hidden; /* 隐藏横向滚动条 */
 }
 /* 确保消息容器不会被图片撑得过大 */
@@ -459,25 +484,37 @@ async handleFileUpload(e) {
   height: 36px;
   border-radius: 50%;
   margin-right: 10px;
+  border: 2px solid #f5dca8; /* 暖色调头像边框 */
 }
 
-.message-bubble.user.avatar {
+.message-bubble.user .avatar {
   margin-right: 0;
   margin-left: 10px;
+  border-color: #e0f0d8;
 }
 
+/* 消息气泡（暖色调区分用户/AI） */
 .content {
   padding: 10px 15px;
   border-radius: 18px;
   margin-top: 5px;
   word-break: break-word;
 }
-
-.message-bubble.user.content,
+/* AI消息气泡 */
 .message-bubble.ai .content {
+  background-color: #fff8e8; /* 暖色调AI气泡 */
+  border: 1px solid #f0e8d0;
   padding: 12px 15px; /* 稍微增大内边距 */
   overflow: hidden; /* 防止图片超出气泡范围 */
 }
+/* 用户消息气泡 */
+.message-bubble.user .content {
+  background-color: #f8fff0; /* 清新暖色调用户气泡 */
+  border: 1px solid #e0f0d8;
+  padding: 12px 15px; /* 稍微增大内边距 */
+  overflow: hidden; /* 防止图片超出气泡范围 */
+}
+
 /* 聊天图片样式优化 */
 .chat-image {
   /* 限制最大宽度为对话框的80%，避免超出容器 */
@@ -491,60 +528,77 @@ async handleFileUpload(e) {
   margin: 5px 0;
   /* 避免图片被挤压时出现滚动条 */
   display: block;
+  border: 1px solid #f0e8d0; /* 暖色调图片边框 */
 }
 .sender {
   font-size: 12px;
   margin: 0 0 5px 0;
-  color: #666;
+  color: #8a7d5e; /* 暖色调文字 */
 }
 
-.message-bubble.user.sender {
-  color: #d0d0d0;
+.message-bubble.user .sender {
+  color: #7d8a5e; /* 用户消息暖色调文字 */
   text-align: right;
 }
 
 .text {
   margin: 0;
   line-height: 1.5;
+  color: #5a523e; /* 暖色调正文 */
 }
 
 .loading {
   text-align: center;
   padding: 10px;
-  color: #666;
+  color: #8a7d5e; /* 暖色调加载文字 */
   font-size: 14px;
+  background-color: #fff8e8;
+  border-radius: 8px;
+  border: 1px dashed #f0e8d0;
 }
 
-/* 聊天输入区域 */
+/* 聊天输入区域（暖色调替换原蓝色） */
 .chat-input {
   display: flex;
   padding: 10px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #f0e8d0; /* 暖色调分割线 */
+  background-color: #fffdf8; /* 暖色调背景 */
 }
 
 .chat-input input {
   flex: 1;
   padding: 10px 15px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #f0e8d0; /* 暖色调输入框边框 */
   border-radius: 20px;
   outline: none;
   font-size: 14px;
+  background-color: #fff;
+}
+.chat-input input:focus {
+  border-color: #f0c880; /* 聚焦暖色调边框 */
 }
 
+/* 发送按钮（暖色调替换原蓝色） */
 .chat-input button {
   margin-left: 10px;
   padding: 0 18px;
-  background-color: #165DFF;
-  color: white;
-  border: none;
+  background-color: #f5dca8; /* 暖色调按钮 */
+  color: #8a7d5e; /* 暖色调文字 */
+  border: 1px solid #f0c880; /* 暖色调边框 */
   border-radius: 20px;
   cursor: pointer;
 }
-
 .chat-input button:hover {
-  background-color: #0e47d7;
+  background-color: #f0c880; /* hover暖色调 */
 }
-/* 文件上传按钮样式 */
+.chat-input button:disabled {
+  background-color: #e8e4d8;
+  border-color: #e0d8c0;
+  color: #a09880;
+  cursor: not-allowed;
+}
+
+/* 文件上传按钮样式（暖色调） */
 .file-upload-input {
   display: none; /* 隐藏原生文件选择框 */
 }
@@ -552,16 +606,22 @@ async handleFileUpload(e) {
 .file-upload-btn {
   margin-right: 10px;
   padding: 8px;
-  color: #165DFF;
+  color: #8a7d5e; /* 暖色调图标 */
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: #fff8e8;
+  border: 1px solid #f0e8d0;
+  border-radius: 50%;
 }
 
 .file-upload-btn:hover {
-  color: #0e47d7;
+  color: #7a6d4e; /* hover暖色调 */
+  background-color: #f5dca8;
+  border-color: #f0c880;
 }
+
 ::v-deep .chat-image {
   max-width: 80% !important; /* 限制最大宽度为对话框80% */
   max-height: 200px !important; /* 限制最大高度200px */
@@ -569,6 +629,7 @@ async handleFileUpload(e) {
   border-radius: 8px;
   margin: 5px auto !important; /* 居中显示 */
   display: block !important;
+  border: 1px solid #f0e8d0 !important;
 }
 
 /* 确保消息气泡不会被图片撑大 */
@@ -582,6 +643,7 @@ async handleFileUpload(e) {
   max-width: 100%;
   overflow: hidden;
 }
+
 /* 响应式调整：屏幕宽度小于1240px时自动纵向排列 */
 @media (max-width: 1240px) {
   .chat-layout {

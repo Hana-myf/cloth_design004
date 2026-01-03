@@ -1,416 +1,439 @@
 <template>
   <div class="color-extractor">
-    <h4 class="tool-title">色彩提取器</h4>
-    
-    <!-- 图片上传区域 -->
+    <!-- 标题：手绘装饰点 -->
+    <h4 class="extractor-title">
+      <span class="title-dot"></span>色彩提取器
+    </h4>
+
+    <!-- 上传区域：暖色调按钮 -->
     <div class="upload-area">
+      <el-input
+        v-model="imageUrl"
+        placeholder="粘贴公共图片URL"
+        clearable
+        class="url-input"
+        @clear="clearImageUrl"
+      ></el-input>
+
+      <!-- 暖色调上传按钮（无蓝色） -->
       <el-upload
         class="image-uploader"
         action=""
+        :auto-upload="false"
+        :on-change="handleImageUpload"
         :show-file-list="false"
-        :http-request="handleImageUpload"
-        :before-upload="beforeUpload"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
+        :disabled="isExtracting"
       >
-        <div v-if="!imageUrl" class="upload-placeholder">
-          <i class="el-icon-picture-outline"></i>
-          <p>点击上传图片提取色彩</p>
-        </div>
-        <img 
-          v-if="imageUrl" 
-          :src="imageUrl" 
-          class="uploaded-image"
-          alt="待提取色彩的图片"
-        >
+        <el-button class="upload-btn">
+          <i class="el-icon-cloud-upload"></i> 上传本地图片
+        </el-button>
       </el-upload>
-      
-      <el-button 
-        v-if="imageUrl"
-        type="text" 
-        class="reset-btn"
-        @click="resetUpload"
+
+      <!-- 暖色调提取按钮（无蓝色） -->
+      <el-button
+        class="extract-btn"
+        @click="extractColors"
+        :disabled="!imageUrl && !uploadedFile || isExtracting"
       >
-        重新上传
+        <i class="el-icon-color"></i> {{ isExtracting ? '提取中...' : '提取主色' }}
       </el-button>
     </div>
-    
-    <!-- 提取结果区域 -->
-    <div v-if="extractedColors.length > 0" class="result-area">
-      <h5 class="result-title">提取的主要色彩</h5>
-      <div class="color-palette">
-        <div 
-          v-for="(color, index) in extractedColors" 
+
+    <!-- 手绘调色板：整齐排列 -->
+    <div class="palette-area">
+      <h5 class="palette-title">当前调色板</h5>
+      <div class="color-palette" v-if="extractedColors.length > 0">
+        <div
+          v-for="(color, index) in extractedColors"
           :key="index"
-          class="color-item"
+          class="color-swatch"
+          :class="{ selected: selectedColorIndexes.includes(index) }"
           :style="{ backgroundColor: color.hex }"
-          @click="copyColorValue(color)"
+          @click="toggleColorSelect(index)"
+          title="点击选中/取消"
         >
-          <div class="color-value">
-            <span>{{ color.hex }}</span>
-            <span class="rgb-value">{{ color.rgb }}</span>
-          </div>
-          <div class="copy-tooltip" v-if="color.copied">
-            已复制!
-          </div>
+          <span class="color-hex">{{ color.hex }}</span>
         </div>
       </div>
-      
-      <el-button 
-        type="primary" 
-        size="small"
-        class="apply-btn"
-        @click="applyColors"
-      >
-        应用这些色彩
-      </el-button>
+      <div class="empty-palette" v-else>
+        <i class="el-icon-paintbrush"></i>
+        <p>上传图片后自动生成调色板</p>
+      </div>
     </div>
-    
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-state">
-      <div class="custom-spinner"></div>
-      <p>正在提取色彩...</p>
+
+    <!-- 图片预览：完整显示 -->
+    <div class="preview-area" v-if="previewImageUrl">
+      <p class="preview-label">提取参考图</p>
+      <img :src="previewImageUrl" alt="提取参考图" class="preview-img" />
     </div>
-    
-    <!-- 提示信息 -->
-    <div v-if="message" class="message提示">
-      <p>{{ message }}</p>
+
+    <!-- 空状态提示 -->
+    <div class="global-empty-state" v-if="!previewImageUrl && extractedColors.length === 0">
+      <i class="el-icon-picture-outline"></i>
+      <p>粘贴图片URL或上传本地图片，提取主色调</p>
     </div>
+
+    <!-- 错误提示 -->
+    <div class="error-state" v-if="extractError">
+      <i class="el-icon-warning"></i>
+      <p>{{ extractError }}</p>
+    </div>
+
+    <!-- 暖色调应用按钮（无蓝色） -->
+    <el-button
+      class="apply-btn"
+      @click="applySelectedColors"
+      :disabled="extractedColors.length === 0 || selectedColorIndexes.length === 0"
+    >
+      应用选中的调色板
+    </el-button>
   </div>
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   name: 'ColorExtractor',
   data() {
     return {
-      // 上传的图片URL
       imageUrl: '',
-      // 提取的色彩列表
+      uploadedFile: null,
+      previewImageUrl: '',
       extractedColors: [],
-      // 加载状态
-      loading: false,
-      // 提示信息
-      message: ''
+      selectedColorIndexes: [],
+      isExtracting: false,
+      extractError: '',
+      imgbbApiKey: 'ddfd3ce61ba74d50a1d1167d498e4c0f',
+      maxColors: 8,
     };
   },
   methods: {
-    // 上传前校验
-    beforeUpload(file) {
-      const isImage = file.type.startsWith('image/');
-      const isLt5M = file.size / 1024 / 1024 < 5;
-      
-      if (!isImage) {
-        this.message = '请上传图片文件';
-        return false;
-      }
-      if (!isLt5M) {
-        this.message = '图片大小不能超过5MB';
-        return false;
-      }
-      
-      this.message = '';
-      return true;
-    },
-    
-    // 处理图片上传（前端处理，不上传服务器）
-    handleImageUpload(params) {
-      const file = params.file;
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        this.imageUrl = e.target.result;
-        this.extractColorsFromImage(this.imageUrl);
-      };
-      
-      reader.readAsDataURL(file);
-    },
-    
-    // 从图片中提取色彩
-    extractColorsFromImage(imageUrl) {
-      this.loading = true;
-      this.extractedColors = [];
-      
-      const img = new Image();
-      img.crossOrigin = 'anonymous'; // 处理跨域
-      
-      img.onload = () => {
-        // 创建小尺寸画布用于分析（提高性能）
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // 缩小图片尺寸，加快处理速度
-        const maxDimension = 100;
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > height) {
-          if (width > maxDimension) {
-            height = (height * maxDimension) / width;
-            width = maxDimension;
-          }
-        } else {
-          if (height > maxDimension) {
-            width = (width * maxDimension) / height;
-            height = maxDimension;
-          }
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        // 获取像素数据
-        const imageData = ctx.getImageData(0, 0, width, height).data;
-        const pixelCount = width * height;
-        const colorFrequency = {};
-        
-        // 统计色彩频率（每5个像素取一个，提高性能）
-        for (let i = 0; i < pixelCount; i += 5) {
-          const index = i * 4;
-          const r = imageData[index];
-          const g = imageData[index + 1];
-          const b = imageData[index + 2];
-          const a = imageData[index + 3];
-          
-          // 忽略透明像素
-          if (a < 255) continue;
-          
-          // 简化色彩（减少色值数量）
-          const key = `${Math.round(r / 32) * 32},${Math.round(g / 32) * 32},${Math.round(b / 32) * 32}`;
-          colorFrequency[key] = (colorFrequency[key] || 0) + 1;
-        }
-        
-        // 转换为数组并按频率排序
-        const sortedColors = Object.entries(colorFrequency)
-          .sort((a, b) => b[1] - a[1])
-          .map(([rgb]) => {
-            const [r, g, b] = rgb.split(',').map(Number);
-            return {
-              hex: this.rgbToHex(r, g, b),
-              rgb: `rgb(${r}, ${g}, ${b})`,
-              copied: false
-            };
-          });
-        
-        // 取前8种主要色彩
-        this.extractedColors = sortedColors.slice(0, 8);
-        this.loading = false;
-        
-        if (this.extractedColors.length === 0) {
-          this.message = '未能提取有效的色彩，请尝试其他图片';
-        }
-      };
-      
-      img.onerror = () => {
-        this.loading = false;
-        this.message = '图片加载失败，请重试';
-      };
-      
-      img.src = imageUrl;
-    },
-    
-    // RGB转十六进制
-    rgbToHex(r, g, b) {
-      return `#${this.componentToHex(r)}${this.componentToHex(g)}${this.componentToHex(b)}`;
-    },
-    
-    componentToHex(c) {
-      const hex = c.toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
-    },
-    
-    // 复制色值到剪贴板
-    copyColorValue(color) {
-      // 重置所有复制状态
-      this.extractedColors.forEach(c => c.copied = false);
-      
-      // 复制色值
-      navigator.clipboard.writeText(color.hex).then(() => {
-        color.copied = true;
-        
-        // 2秒后隐藏复制提示
-        setTimeout(() => {
-          color.copied = false;
-        }, 2000);
-      }).catch(() => {
-        this.message = '复制失败，请手动复制';
-        setTimeout(() => this.message = '', 2000);
-      });
-    },
-    
-    // 应用色彩（向父组件传递）
-    applyColors() {
-      this.$emit('apply-colors', this.extractedColors);
-      this.$message.success('已应用所选色彩');
-    },
-    
-    // 重置上传
-    resetUpload() {
+    clearImageUrl() {
       this.imageUrl = '';
+      this.previewImageUrl = '';
       this.extractedColors = [];
-      this.message = '';
-    }
-  }
+      this.selectedColorIndexes = [];
+      this.extractError = '';
+    },
+
+    async handleImageUpload(file) {
+      const imageFile = file.raw;
+      if (!imageFile || this.isExtracting) return;
+
+      this.uploadedFile = imageFile;
+      this.isExtracting = true;
+      this.extractError = '';
+
+      try {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${this.imgbbApiKey}`, {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          this.previewImageUrl = result.data.url;
+          this.imageUrl = '';
+          this.$message.success('图片上传成功！');
+        } else {
+          throw new Error(result.error?.message || '图片上传失败');
+        }
+      } catch (error) {
+        this.extractError = `上传失败：${error.message}`;
+        this.$message.error(this.extractError);
+      } finally {
+        this.isExtracting = false;
+      }
+    },
+
+    async extractColors() {
+      if (this.isExtracting) return;
+      this.isExtracting = true;
+      this.extractError = '';
+      this.extractedColors = [];
+      this.selectedColorIndexes = [];
+
+      try {
+        const finalImageUrl = this.imageUrl.trim() || this.previewImageUrl;
+        if (!finalImageUrl) {
+          throw new Error('请先上传图片或输入图片URL');
+        }
+
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = async () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const scale = 0.2;
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            const colorMap = new Map();
+
+            for (let i = 0; i < pixels.length; i += 4) {
+              const r = pixels[i];
+              const g = pixels[i + 1];
+              const b = pixels[i + 2];
+              const a = pixels[i + 3];
+              if (a < 128) continue;
+
+              const hex = this.rgbToHex(r, g, b);
+              const count = colorMap.get(hex) || 0;
+              colorMap.set(hex, count + 1);
+            }
+
+            const sortedColors = Array.from(colorMap.entries())
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, this.maxColors);
+
+            this.extractedColors = sortedColors.map(([hex]) => ({
+              hex,
+              name: this.getColorName(hex),
+            }));
+            this.selectedColorIndexes = [0, 1, 2, 3].filter(i => i < this.extractedColors.length);
+            this.$message.success(`成功生成${this.extractedColors.length}色调色板！`);
+          } catch (error) {
+            this.extractError = `提取失败：${error.message}`;
+            this.$message.error(this.extractError);
+          } finally {
+            this.isExtracting = false;
+          }
+        };
+
+        img.onerror = () => {
+          this.extractError = '图片加载失败，请检查URL是否有效';
+          this.$message.error(this.extractError);
+          this.isExtracting = false;
+        };
+
+        img.src = finalImageUrl;
+      } catch (error) {
+        this.extractError = error.message;
+        this.$message.error(this.extractError);
+        this.isExtracting = false;
+      }
+    },
+
+    rgbToHex(r, g, b) {
+      return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    },
+
+    getColorName(hex) {
+      const colorNames = {
+        '#ffffff': '白色', '#000000': '黑色', '#ff0000': '红色', '#00ff00': '绿色', '#0000ff': '蓝色',
+        '#ffff00': '黄色', '#ff00ff': '洋红', '#00ffff': '青色', '#ffa500': '橙色', '#800080': '紫色',
+      };
+      return colorNames[hex.toLowerCase()] || `自定义色`;
+    },
+
+    toggleColorSelect(index) {
+      if (this.selectedColorIndexes.includes(index)) {
+        this.selectedColorIndexes = this.selectedColorIndexes.filter(i => i !== index);
+      } else {
+        this.selectedColorIndexes.push(index);
+      }
+    },
+
+    applySelectedColors() {
+      const selectedColors = this.selectedColorIndexes.map(i => this.extractedColors[i]);
+      this.$emit('apply-colors', selectedColors);
+      this.$message.success('调色板已应用！');
+    },
+  },
 };
 </script>
 
 <style scoped>
+/* 容器：手绘暖风格基底 */
 .color-extractor {
-  padding: 16px;
-  border-top: 1px solid #eee;
+  padding: 15px;
+  background-color: rgba(255, 255, 250, 0.98);
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
 }
 
-.tool-title {
-  margin: 0 0 16px;
+/* 标题：手绘装饰点 */
+.extractor-title {
+  margin: 0;
   font-size: 16px;
-  color: #333;
+  color: #8a7d5e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.title-dot {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background-color: #f0c880;
+  border-radius: 4px;
 }
 
-/* 上传区域样式 */
+/* 上传区域：暖色调按钮+整齐布局 */
 .upload-area {
-  position: relative;
-  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.url-input {
+  flex: 1;
+  min-width: 120px;
+  --el-input-border-color: #f0e8d0 !important;
+  --el-input-hover-border-color: #f0c880 !important;
+  --el-input-text-color: #8a7d5e !important;
+  --el-input-placeholder-color: #a09880 !important;
+  border-radius: 22px !important;
 }
 
-.upload-placeholder {
+/* 所有按钮：强制暖色调（无蓝色） */
+.upload-btn, .extract-btn, .apply-btn {
+  --el-button-bg-color: #f5dca8 !important;
+  --el-button-border-color: #f0c880 !important;
+  --el-button-text-color: #8a7d5e !important;
+  --el-button-hover-bg-color: #f0c880 !important;
+  --el-button-hover-text-color: #7a6d4e !important;
+  --el-button-disabled-bg-color: #f9eeda !important;
+  --el-button-disabled-border-color: #f5dca8 !important;
+  --el-button-disabled-text-color: #a09880 !important;
+  border-radius: 22px !important;
+  padding: 8px 16px !important;
+}
+.apply-btn {
   width: 100%;
-  height: 140px;
-  border: 1px dashed #ddd;
+  margin-top: auto;
+}
+
+/* 手绘调色板：整齐排列 */
+.palette-area {
+  background-color: #fff8e8;
+  border: 1px solid #f0e8d0;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 3px 8px rgba(240, 224, 180, 0.12);
+}
+.palette-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #8a7d5e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.palette-title::before {
+  content: "";
+  width: 6px;
+  height: 12px;
+  background-color: #f0c880;
+  border-radius: 3px;
+}
+.color-palette {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.color-swatch {
+  width: 100%;
+  height: 40px;
   border-radius: 8px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(240, 200, 128, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+.color-swatch:hover {
+  transform: scale(1.05);
+}
+.color-swatch.selected {
+  box-shadow: 0 0 0 2px #f0c880;
+}
+.color-hex {
+  font-size: 10px;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0,0,0,0.5);
+  font-weight: bold;
+}
+.empty-palette {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #999;
-  background-color: #fafafa;
-  cursor: pointer;
-  transition: border-color 0.2s;
+  padding: 20px 0;
+  color: #8a7d5e;
 }
-
-.upload-placeholder:hover {
-  border-color: #1890ff;
-}
-
-.upload-placeholder .el-icon-picture-outline {
-  font-size: 32px;
+.empty-palette i {
+  font-size: 36px;
+  color: #f0c880;
   margin-bottom: 8px;
 }
+.empty-palette p {
+  margin: 0;
+  font-size: 13px;
+}
 
-.uploaded-image {
-  width: 100%;
-  height: 180px;
-  object-fit: contain;
+/* 图片预览：完整显示 */
+.preview-area {
+  border: 1px solid #f0e8d0;
   border-radius: 8px;
-  border: 1px solid #eee;
-  background-color: #f9f9f9;
+  padding: 12px;
+  background-color: #fff8e8;
 }
-
-.reset-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  color: #666;
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 2px 8px;
+.preview-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #8a7d5e;
 }
-
-/* 结果区域样式 */
-.result-area {
-  margin-top: 20px;
-}
-
-.result-title {
-  font-size: 14px;
-  color: #666;
-  margin: 0 0 12px;
-}
-
-.color-palette {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.color-item {
-  width: 80px;
-  height: 80px;
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s;
-}
-
-.color-item:hover {
-  transform: scale(1.05);
-}
-
-.color-value {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 4px;
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  font-size: 12px;
-}
-
-.rgb-value {
-  display: block;
-  font-size: 10px;
-  opacity: 0.8;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.copy-tooltip {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 4px 8px;
+.preview-img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
   border-radius: 4px;
-  font-size: 12px;
+  border: 1px solid #f0e8d0;
 }
 
-.apply-btn {
-  margin-top: 8px;
-}
-
-/* 加载状态 */
-.loading-state {
+/* 空状态/错误状态：手绘风格 */
+.global-empty-state, .error-state {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px 0;
-  color: #666;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 10px;
+  background-color: #fff8e8;
+  border: 1px dashed #f0e8d0;
 }
-
-.custom-spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid #ddd;
-  border-top-color: #1890ff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 8px;
+.global-empty-state i {
+  font-size: 48px;
+  color: #f0c880;
+  margin-bottom: 10px;
 }
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.error-state i {
+  font-size: 48px;
+  color: #e8a07e;
+  margin-bottom: 10px;
 }
-
-/* 提示信息 */
-.message提示 {
-  text-align: center;
-  padding: 10px;
-  color: #f56c6c;
+.global-empty-state p, .error-state p {
+  margin: 0;
   font-size: 14px;
+  color: #8a7d5e;
+}
+.error-state p {
+  color: #e8a07e;
 }
 </style>

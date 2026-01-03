@@ -101,6 +101,7 @@ const routes = [
         component: () => import(`@/views/user/Home.vue`),
         meta: {
           requireAuth: true,
+          icon: 'el-icon-document', // 行业资讯 - 文档/文章
         },
       },
       {
@@ -109,6 +110,7 @@ const routes = [
         component: () => import(`@/views/user/NewsSave.vue`),
         meta: {
           requireAuth: true,
+          icon: 'el-icon-star-off', // 收藏与创作 - 收藏/星星
         },
       },
       {
@@ -117,6 +119,7 @@ const routes = [
         component: () => import(`@/views/user/UserHealthModel.vue`),
         meta: {
           requireAuth: true,
+          icon: 'el-icon-magic-stick', // 服装设计 - 魔法棒/设计
         },
       },
       {
@@ -125,6 +128,7 @@ const routes = [
         component: () => import(`@/views/user/NewsDetail.vue`),
         meta: {
           requireAuth: true,
+          icon: 'el-icon-document-copy', // 行业资讯详情 - 文档复制/详情
         },
         isHidden: true,
       },
@@ -134,6 +138,7 @@ const routes = [
         component: () => import(`@/views/user/Search.vue`),
         meta: {
           requireAuth: true,
+          icon: 'el-icon-search', // 搜索页 - 搜索
         },
         isHidden: true,
       },
@@ -142,7 +147,8 @@ const routes = [
         path: "/message",
         component: () => import(`@/views/user/Message.vue`),
         meta: {
-          requireAuth: true
+          requireAuth: true,
+          icon: 'el-icon-message', // 消息 - 消息气泡
         },
         isHidden: true
       },
@@ -152,6 +158,28 @@ const routes = [
         component: () => import(`@/views/user/DetailOptimization.vue`),
         meta: {
           requireAuth: true,
+          icon: 'el-icon-brush', // 细节优化 - 画笔/精修
+        },
+      },
+      {
+        name: '专业设计',
+        // 注意：这里原来的 'icon' 属性就已经是直接在路由对象下，我将其移动到了 meta 内部
+        path: "/pro-design",
+        alias: "/user/pro-design",
+        component: () => import(`@/views/user/ProfessionalDesign.vue`),
+        meta: {
+          requireAuth: true,
+          icon: 'el-icon-edit', // 专业设计 - 编辑/铅笔
+        },
+      },
+      // *** 在这里添加新的智能换装路由 ***
+      {
+        name: '智能换装', // 与菜单显示名称一致
+        path: "/dressup", // 完整路径将是 /user/dressup
+        component: () => import(`@/views/user/DressUp.vue`), // 你的组件路径
+        meta: {
+          requireAuth: true, // 确保需要认证才能访问
+          icon: 'el-icon-scissors', // 智能换装 - 剪刀/时尚
         },
       },
     ]
@@ -159,7 +187,7 @@ const routes = [
 ];
 const router = new VueRouter({
   routes,
-  mode: 'history'
+  // mode: 'history'
 });
 router.beforeEach((to, from, next) => {
   if (to.meta.requireAuth) {

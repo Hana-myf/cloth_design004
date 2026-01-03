@@ -1,8 +1,11 @@
 <template>
   <div class="fabric-library">
-    <h4 class="library-title">面料库</h4>
+    <!-- 标题：与主页面标题风格对齐 -->
+    <h4 class="library-title">
+      <span class="title-dot"></span>面料库
+    </h4>
     
-    <!-- 搜索区域 -->
+    <!-- 搜索区域：与主页面输入组件样式统一 -->
     <div class="search-container">
       <el-input
         v-model="searchQuery.name"
@@ -29,7 +32,7 @@
       </el-select>
     </div>
     
-    <!-- 面料网格展示 -->
+    <!-- 面料展示区：撑满剩余高度 + 滚动适配 -->
     <div class="fabric-grid">
       <div v-for="(fabric, index) in fabrics" :key="fabric.id" class="fabric-item">
         <div 
@@ -54,20 +57,19 @@
         <p>暂无面料数据</p>
       </div>
       
-      <!-- 加载中提示 -->
+      <!-- 加载中提示：与主页面加载样式统一 -->
       <div v-if="loading" class="loading">
-      <!-- 纯CSS实现的加载动画 -->
-     <div class="custom-spinner"></div>
-     <p>加载中...</p>
-     </div>
+        <div class="custom-spinner"></div>
+        <p>加载中...</p>
+      </div>
     </div>
 
-    <!-- 面料详情预览弹窗 -->
+    <!-- 面料详情弹窗：与主页面弹窗风格统一 -->
     <el-dialog
       :visible.sync="previewVisible"
-      :append-to-body="true"
-      :close-on-click-modal="true"
-      :show-close="true"
+      append-to-body
+      close-on-click-modal
+      show-close
       class="fabric-preview-dialog"
       width="60%"
     >
@@ -96,110 +98,89 @@
 </template>
 
 <script>
-import { debounce } from 'lodash'; // 假设使用lodash的防抖函数
+import { debounce } from 'lodash';
 
 export default {
   name: 'FabricLibrary',
   data() {
     return {
-      // 面料列表数据
       fabrics: [],
-      // 搜索条件
       searchQuery: {
         name: '',
         type: ''
       },
-      // 所有面料类型
       allTypes: [],
-      // 预览相关
       previewVisible: false,
       currentFabric: {},
-      // 加载状态
       loading: false
     };
   },
   created() {
-    // 初始化时获取所有面料类型和面料列表
     this.fetchAllTypes();
     this.fetchFabrics();
   },
   methods: {
-    // 防抖处理搜索，避免频繁请求
     handleSearchDebounced: debounce(function() {
       this.handleSearch();
     }, 300),
     
-    // 获取面料列表
-    // 获取面料列表（修改后）
-async fetchFabrics() {
-  this.loading = true;
-  try {
-    // 补充分页参数（和管理员一致）
-    const params = {
-      ...this.searchQuery,
-      current: 1, // 至少传递第1页
-      size: 10    // 每页10条（可根据需要调整）
-    };
-    const response = await this.$axios.post('/fabric/query', params);
-    // 用 code === 200 判断成功（和管理员一致）
-    if (response.data.code === 200) {
-      // 注意：管理员界面接收的是 response.data.data.fabricList，这里可能需要对应调整
-      this.fabrics = response.data.data.fabricList || []; 
-    } else {
-      this.$message.error('获取面料失败：' + (response.data.msg || '未知错误'));
-      this.fabrics = [];
-    }
-  } catch (error) {
-    this.$message.error('获取面料列表失败，请重试');
-    console.error(error);
-    this.fabrics = [];
-  } finally {
-    this.loading = false;
-  }
-},
+    async fetchFabrics() {
+      this.loading = true;
+      try {
+        const params = {
+          ...this.searchQuery,
+          current: 1,
+          size: 20 // 增加每页加载数量，让内容更饱满
+        };
+        const response = await this.$axios.post('/fabric/query', params);
+        if (response.data.code === 200) {
+          this.fabrics = response.data.data.fabricList || [];
+        } else {
+          this.$message.error('获取面料失败：' + (response.data.msg || '未知错误'));
+          this.fabrics = [];
+        }
+      } catch (error) {
+        this.$message.error('获取面料列表失败，请重试');
+        console.error(error);
+        this.fabrics = [];
+      } finally {
+        this.loading = false;
+      }
+    },
     
-    // 获取所有面料类型
-    // 获取面料类型（修改后）
-async fetchAllTypes() {
-  try {
-    const response = await this.$axios.get('/fabric/types');
-    // 用 code === 200 判断成功
-    if (response.data.code === 200) {
-      this.allTypes = response.data.data || [];
-    } else {
-      this.$message.error('获取面料类型失败：' + (response.data.msg || '未知错误'));
-    }
-  } catch (error) {
-    this.$message.error('获取面料类型失败，请重试');
-    console.error(error);
-  }
-},
+    async fetchAllTypes() {
+      try {
+        const response = await this.$axios.get('/fabric/types');
+        if (response.data.code === 200) {
+          this.allTypes = response.data.data || [];
+        } else {
+          this.$message.error('获取面料类型失败：' + (response.data.msg || '未知错误'));
+        }
+      } catch (error) {
+        this.$message.error('获取面料类型失败，请重试');
+        console.error(error);
+      }
+    },
     
-    // 处理搜索
     handleSearch() {
       this.fetchFabrics();
     },
     
-    // 处理面料点击事件
     handleFabricClick(fabric) {
       this.currentFabric = { ...fabric };
       this.previewVisible = true;
     },
     
-    // 处理选择面料
     handleSelectFabric() {
-      // 向父组件发射选择事件，传递选中的面料信息
       this.$emit('select', this.currentFabric);
       this.previewVisible = false;
       this.$message.success(`已选择面料：${this.currentFabric.name}`);
     },
     
-    // 处理面料图片加载失败
     handleImageError(index) {
       this.$set(this.fabrics[index], 'imageUrl', require('@/assets/fabric-placeholder.png'));
     },
     
-    // 处理预览图片加载失败
     handlePreviewImageError() {
       this.currentFabric.imageUrl = require('@/assets/fabric-placeholder.png');
     }
@@ -208,184 +189,182 @@ async fetchAllTypes() {
 </script>
 
 <style scoped>
+/* 面料库容器：撑满左侧工具区高度 + 主页面风格统一 */
 .fabric-library {
-  padding: 16px;
-  border-top: 1px solid #eee;
-  height: 100%;
+  padding: 15px;
+  background-color: rgba(253, 253, 209, 0.98);
+  height: 100%; /* 强制占满父容器（左侧工具区）高度 */
   box-sizing: border-box;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column; /* 纵向布局，让内容撑满 */
+  overflow: hidden;
 }
 
+/* 标题：与主页面标题样式完全对齐 */
 .library-title {
   margin: 0 0 16px;
   font-size: 16px;
-  color: #333;
+  color: #8a7d5e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.title-dot {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background-color: #f0c880;
+  border-radius: 4px;
 }
 
-/* 搜索区域样式 */
+/* 搜索区域：与主页面输入组件样式统一 */
 .search-container {
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
 }
-
 .search-input {
   flex: 1;
-  width: auto;
+  --el-input-border-color: #f0e8d0 !important;
+  --el-input-hover-border-color: #f0c880 !important;
+  --el-input-text-color: #8a7d5e !important;
+  --el-input-placeholder-color: #a09880 !important;
+  border-radius: 22px !important; /* 与主页面输入框圆角一致 */
 }
-
 .type-select {
   width: 160px;
+  --el-select-border-color: #f0e8d0 !important;
+  --el-select-hover-border-color: #f0c880 !important;
+  --el-select-text-color: #8a7d5e !important;
+  --el-select-placeholder-color: #a09880 !important;
+  border-radius: 22px !important; /* 与主页面下拉框圆角一致 */
 }
 
-/* 面料网格样式 */
+/* 面料展示区：撑满剩余高度 + 滚动适配 */
 .fabric-grid {
+  flex: 1; /* 撑满容器剩余高度 */
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr); /* 2列布局适配工具区宽度 */
   gap: 12px;
+  overflow-y: auto; /* 内容超出时滚动 */
+  /* 滚动条样式：与主页面.chat-content滚动条完全一致 */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background-color: #fff8e8;
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: #f5dca8;
+    border-radius: 4px;
+    border: 1px solid #fff8e8;
+  }
 }
 
+/* 面料卡片：与主页面成果库卡片样式统一 */
 .fabric-item {
-  width: 100%;
-  height: 140px; /* 比图片列表稍高，因为要显示更多信息 */
-  border-radius: 8px;
+  background-color: #fff8e8;
+  border: 1px solid #f0e8d0;
+  border-radius: 10px;
   overflow: hidden;
-  position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s;
+  box-shadow: 0 3px 8px rgba(240, 224, 180, 0.12);
+  transition: all 0.2s ease;
 }
-
 .fabric-item:hover {
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(240, 224, 180, 0.18);
+  border-color: #f0c880;
 }
-
 .fabric-wrapper {
-  width: 100%;
-  height: 100%;
   cursor: pointer;
 }
-
 .fabric-image {
   width: 100%;
-  height: 100%;
+  height: 120px;
   object-fit: cover;
-  transition: transform 0.2s;
 }
-
-.fabric-item:hover .fabric-image {
-  transform: scale(1.05);
-}
-
 .fabric-info {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 4px 8px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-  color: white;
+  padding: 8px 10px;
+  color: #8a7d5e;
 }
-
 .fabric-name {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 4px;
 }
-
 .fabric-type {
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.9;
 }
 
-/* 无数据和加载样式 */
+/* 无数据/加载提示：与主页面风格统一 */
 .no-data, .loading {
-  grid-column: span 4;
-  height: 140px;
+  grid-column: span 2;
+  height: 100%; /* 占满展示区高度 */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #999;
-  background: #f5f5f5;
-  border-radius: 8px;
+  color: #8a7d5e;
+  background-color: #fff8e8;
+  border: 1px dashed #f0e8d0;
+  border-radius: 10px;
 }
-
-.loading .el-loading-spinner {
+.custom-spinner {
+  margin: 0 auto 8px;
   width: 30px;
   height: 30px;
-  margin-bottom: 8px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #f0c880;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-/* 预览弹窗样式 */
+/* 弹窗：与主页面弹窗样式统一 */
+.fabric-preview-dialog {
+  --el-dialog-bg-color: rgba(255, 255, 250, 0.98) !important;
+  --el-dialog-border-color: #f0e8d0 !important;
+}
+.fabric-preview-dialog .el-dialog__header {
+  border-bottom: 1px solid #f0e8d0;
+  color: #8a7d5e;
+}
 .preview-content {
   display: flex;
   gap: 20px;
-  align-items: flex-start;
+  padding: 10px 0;
 }
-
 .preview-image {
-  width: 300px;
-  height: 300px;
+  width: 240px;
+  height: 240px;
   object-fit: cover;
-  border-radius: 4px;
+  border: 1px solid #f0e8d0;
+  border-radius: 8px;
 }
-
 .preview-details {
   flex: 1;
-  min-width: 0;
+  color: #8a7d5e;
 }
-
 .preview-details h3 {
-  margin-top: 0;
+  font-size: 18px;
   margin-bottom: 16px;
-  color: #333;
+  color: #8a7d5e;
 }
-
 .preview-details p {
-  margin: 8px 0;
   line-height: 1.6;
-  color: #666;
-}
-
-.fabric-preview-dialog .el-dialog__body {
-  padding: 20px;
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .fabric-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .no-data, .loading {
-    grid-column: span 2;
-  }
-  
-  .preview-content {
-    flex-direction: column;
-  }
-  /* 自定义加载动画 */
-.custom-spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid #ddd;
-  border-top-color: #1890ff; /* 蓝色顶部 */
-  border-radius: 50%;
-  animation: spin 1s linear infinite; /* 旋转动画 */
   margin-bottom: 8px;
 }
-  .preview-image {
-    width: 100%;
-    height: auto;
-  }
-  /* 旋转动画定义 */
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
+.preview-details .el-button--primary {
+  --el-button-bg-color: #f5dca8 !important;
+  --el-button-border-color: #f0c880 !important;
+  --el-button-text-color: #8a7d5e !important;
+  --el-button-hover-bg-color: #f0c880 !important;
+  --el-button-hover-text-color: #7a6d4e !important;
+  border-radius: 22px !important; /* 与主页面按钮圆角一致 */
 }
 </style>
