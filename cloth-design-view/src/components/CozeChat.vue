@@ -110,7 +110,7 @@ export default {
     this.messages.push({
       content: '你好！我是AI助手，有什么可以帮你的吗？',
       isUser: false,
-      avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/chatsdk-logo.png'
+      avatar: 'https://pic1.imgdb.cn/item/69c5501053701b6d63d9b415.png'
     });
     // 登录状态判断（只执行一次）
     if (!this.realCurrentUserId) { // 修复：使用计算属性的用户ID
@@ -250,7 +250,7 @@ export default {
       const aiMsgIndex = this.messages.push({
         content: '',
         isUser: false,
-        avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/chatsdk-logo.png'
+        avatar: 'https://pic1.imgdb.cn/item/69c5501053701b6d63d9b415.png'
       }) - 1;
 
       try {
@@ -340,7 +340,7 @@ export default {
       this.messages.push({
         content: '你好！我是AI助手，有什么可以帮你的吗？',
         isUser: false,
-        avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/chatsdk-logo.png'
+        avatar: 'https://pic1.imgdb.cn/item/69c5501053701b6d63d9b415.png'
       });
       this.scrollToBottom(); // 滚动到底部
     }

@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
  */
 
 @RestController
-// 核心修改：去掉/api/personal-heath/v1.0前缀，直接用/public/ai作为根路径
 @RequestMapping("/public/ai")
 public class ApiProxyController {
 
@@ -44,7 +43,7 @@ public class ApiProxyController {
                 .dispatcher(dispatcher)
                 .build();
     }
-    @Protector // 关键：确保被ProtectorAspect拦截
+    @Protector
     @PostMapping("/generate-image")
     public Map<String, Object> generateImage(@RequestBody Map<String, Object> requestParams) {
         Map<String, Object> result = new HashMap<>(3);

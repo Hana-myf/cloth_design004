@@ -32,13 +32,7 @@
                     </el-col>
                 </el-row>
             </li>
-            <!-- 指标记录 -->
-            <li class="health-record-item">
-                <span @click="healthDataRecord" class="health-record-text">
-                    <i class="el-icon-edit-outline"></i>
-                    指标记录
-                </span>
-            </li>
+
             <!-- 消息中心 -->
             <li class="message-item">
                 <el-badge style="margin-left: 5px;font-size: 16px;" v-if="noReadMsg !== 0" :value="noReadMsg">

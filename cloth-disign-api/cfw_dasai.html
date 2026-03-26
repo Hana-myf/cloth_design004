@@ -1,0 +1,604 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="360-site-verification" content="5e07d3a160afd6e113a3374337628cfe" />
+    <meta name="renderer" content="webkit">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2026服饰设计大赛有哪些-CFW设计大赛</title>
+    <meta name="keywords" content="2026服饰设计大赛、CFW设计大赛" />
+    <meta name="description" content="CFW设计大赛全面提供2026年国内外热门服饰设计大赛征稿信息，搭建服饰设计大赛参赛者与主办方的互动交流桥梁。" />
+    <meta name="mobile-agent" content="format=html5;url=https://ds.cfw.cn/ds/list0600-1.html" />
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="bookmark" href="/favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" type="text/css" href="/lib/fonts/iconfont.css">
+    <link rel="stylesheet" type="text/css" href="/lib/css/base.css" />
+    <link rel="stylesheet" type="text/css" href="/lib/css/common.css" />
+    <link rel="stylesheet" type="text/css" href="/lib/css/header.css" />
+    <link rel="stylesheet" type="text/css" href="/lib/css/footer.css" />
+    <link rel="stylesheet" type="text/css" href="/lib/css/sidebar.css" />
+    <script type="text/javascript" src="/lib/js/requirejs/require.js"></script>
+    <script type="text/javascript" src="/lib/js/requirejs/require.config.js?v=20260326"></script>
+
+    
+    <link rel="stylesheet" type="text/css" href="/lib/css/competition.css">
+
+    
+    <script type="text/javascript">
+        require(["competition_index"]);
+        require(["jquery"], function ($) {
+                    $('.categorylist li').on("click", function () {
+                        var urlval = $(this).attr("data-val");
+                        console.log(urlval);
+                        window.location.href = "/compete/search?keyword=&ordernum=0&categoryCode=0600&smallCategoryCode=" + urlval
+                    });
+        })
+    </script>
+
+</head>
+
+<body>
+    
+<div class="g-hd">
+    <div class="art-header">
+        <div class="wrap fix">
+            <a href="/" class="logo"><img src="/lib/images/res/logo.png" class="l avatar" alt="CFW设计大赛"></a>
+            <div class="tab l">
+                <a href="/" class="link ">首页</a>
+                <a href="/hot/" class="link ">热门</a>
+                <a href="/ds/" class="link active">赛事</a>
+                <a href="/news/" class="link ">资讯</a>
+                
+                <a href="/topic/" class="link ">专题</a>
+            </div>
+            <!-- 搜索 -->
+            <div class="search fix l">
+                <div class="box fix l">
+                    <div class="choose border-box rel l">
+                        <div class="current poi">
+
+                            <span class="text" id="urlval" data-val="compete/search">赛事</span>
+                            <i class="iconfont f12 cc">&#xe7d8;</i>
+                        </div>
+                        <ul class="list fix">
+                            <li data-val="compete/search">赛事</li>
+                            <li data-val="award/index">作品</li>
+                            <li data-val="news/index">资讯</li>
+                        </ul>
+                    </div>
+                    <input type="text" placeholder="请输入关键词" id="keyword">
+                </div>
+                <span class="btn poi iconfont" id="searchbtn">&#xe802;</span>
+            </div>
+
+            <div class="r fix" id="li_show_login" data-login="off">
+                <!-- 未登录 -->
+                <a href="javascript:;" class="login-btn l">个人登录</a>
+                <!-- 已登录 -->
+                
+                <div class="info-box rel l ml30">
+                    <div class="info poi">
+                        <span class="dib vm">发布征稿</span>
+                        <i class="iconfont dib vm ml5 f12">&#xe615;</i>
+                    </div>
+                    <ul class="nav-list" style="min-width: 96px;">
+                        <li><a href="javascript:;">发布征稿</a></li>
+                        <li><a href="javascript:;" class="rungamebtn">我要办赛</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<input type="hidden" id="hd_login_type" value="" />
+
+<script>
+    require(["jquery", "layer"], function ($, layer) {
+        $(function () {
+            login();
+            //头部动态下拉效果
+            $("body").on("mouseenter", "#li_show_login .info-box", function () {
+                $(this).stop().addClass("show");
+            });
+            $("body").on("mouseleave", "#li_show_login .info-box", function () {
+                $(this).stop().removeClass("show");
+            });
+            $("body").on("click", ".rungamebtn",function () {
+                layer.open({
+                    type: 2,
+                    title: false,
+                    closeBtn: 2,
+                    scrollbar: false,
+                    area: ['600px', '510px'],
+                    content: "/compete/releaseeventlayerview/",
+                    end: function () {
+                        layer.close();
+                    }
+                });
+            })
+        })
+
+        function login() {
+            var typename = $.trim($("#hd_login_type").val());
+            var url = window.location.pathname;
+            $.ajax({
+                type: "post",
+                dataType: "json",
+                url: '/loginshow/checkLogin/',
+                data: { typename: typename, url: url },
+                success: function (data) {
+                    if (data.success == true) {
+                        $("#li_show_login").html(data.loginHtml);
+                        $("#li_show_login").attr("data-login", "on");
+                    }
+                    else {
+                        $("#li_show_login").attr("data-login", "on");
+                        return true;
+                    }
+
+                }
+            });
+        }
+
+        $('.search .choose').hover(function () {
+            $(this).find('.list').show();
+            $(this).find(".list li").on("click", function () {
+                var text = $(this).text();
+                var urlval = $(this).attr("data-val");
+                $('.search .choose .current .text').text(text);
+                $('.search .choose .list').hide();
+                $("#urlval").attr("data-val", urlval);
+            })
+        }, function () {
+            $(this).find('.list').hide();
+            });
+        $("#searchbtn").on("click", function () {
+            var keyword = $("#keyword").val();
+            var urlval = $("#urlval").attr("data-val");
+            if (keyword == undefined || keyword.trim() == "") {
+                layer.msg("关键词不能为空！");
+                return false;
+            }
+            window.location.href = "/" + urlval + "/?keyword=" + keyword;
+        });
+
+        document.onkeydown = function (e) {
+            var theEvent = window.event || e;
+            var code = theEvent.keyCode || theEvent.which;
+            if (code == 13) {
+                var _keys = $.trim($("#keyword").val());
+                if (_keys != null && _keys != "") {
+                    $("#searchbtn").click();
+                }
+            }
+        }
+    })
+</script>
+
+
+    
+
+
+    <div class="g-bd">
+        <div class="sub-nav ptb15 bg-white">
+            <div class="wrap">
+                <a href="/ds/" class="dib vm ">最新大赛</a>
+                            <span class="dib vm plr10 cc">|</span>
+                            <a href="/ds/list0100-1.html" class="dib vm  ">工业设计</a>
+                            <span class="dib vm plr10 cc">|</span>
+                            <a href="/ds/list0200-1.html" class="dib vm  ">平面视觉</a>
+                            <span class="dib vm plr10 cc">|</span>
+                            <a href="/ds/list0300-1.html" class="dib vm  ">环艺设计</a>
+                            <span class="dib vm plr10 cc">|</span>
+                            <a href="/ds/list0400-1.html" class="dib vm  ">文创IP</a>
+                            <span class="dib vm plr10 cc">|</span>
+                            <a href="/ds/list0500-1.html" class="dib vm  ">数字影视</a>
+                            <span class="dib vm plr10 cc">|</span>
+                            <a href="/ds/list0600-1.html" class="dib vm  red">服饰设计</a>
+                            <span class="dib vm plr10 cc">|</span>
+                            <a href="/ds/list0700-1.html" class="dib vm  ">文案创作</a>
+
+            </div>
+        </div>
+        <!-- 广告轮播 -->
+                <div class="banner_cmpt">
+                        <ul class="imgs">
+                                    <li style="opacity: 1; display: block;">
+                                        <a href="https://art.cfw.cn/ds/zhenggaov736-1.html" style="background:url(https://img1.cfw.cn/70001/202511/18/342579290572010291320251118051755.jpg) center no-repeat;" target="_blank" rel="nofollow">
+                                            <i class="ggTips"></i>
+                                        </a>
+                                    </li>
+                                    <li >
+                                        <a href="https://dasai.cfw.cn/ds/1087.html" style="background:url(https://img1.cfw.cn/70001/202508/29/339640194129356390420250829024844.jpg) center no-repeat;" target="_blank" rel="nofollow">
+                                            <i class="ggTips"></i>
+                                        </a>
+                                    </li>
+                                    <li >
+                                        <a href="http://jswcds.cfw.cn/" style="background:url(https://img1.cfw.cn/70001/202508/29/339639347233528217620250829021505.jpg) center no-repeat;" target="_blank" rel="nofollow">
+                                            <i class="ggTips"></i>
+                                        </a>
+                                    </li>
+
+                        </ul>
+
+                    <ul class="imgsRect"></ul>
+                </div>
+
+        <div class="wrap fix">
+            <div class="g-main l mb30">
+                <div class="ptb15 fix">
+                            <div class="filter-select rel l">
+                                <p class="text">
+                                    <span>请选择分类</span>
+                                    <i class="iconfont ml5 f12 cc"></i>
+                                </p>
+                                <ul class="categorylist">
+                                                <li data-val="0601">服装</li>
+                                                <li data-val="0602">饰品</li>
+                                                <li data-val="0603">图案</li>
+                                                <li data-val="0604">其他</li>
+
+                                </ul>
+                            </div>
+
+
+                            <a href="/compete/search/?keyword=&ordernum=1&categoryCode=0600&smallCategoryCode=" class="date-sort-btn">开始时间 ↑</a>
+                            <a href="/compete/search/?keyword=&ordernum=3&categoryCode=0600&smallCategoryCode=" class="date-sort-btn">截止时间 ↑</a>
+
+                </div>
+
+                        <ul class="competition-data bg-white">
+                                    <li>
+                                        <a href="/ds/1163.html" class="pic" target="_blank">
+                                                <img src="https://img1.cfw.cn/70001/202601/13/344598947473391616020260113105148.jpg" alt="第十四届国际大学生时尚设计盛典赛事">
+                                        </a>
+                                        <div class="content">
+                                            <p class="pt5">
+                                                <a href="/ds/1163.html" class="name" target="_blank">第十四届国际大学生时尚设计盛典赛事</a>
+                                            </p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe826;</i>2026.01.05-2027.03.22</p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe844;</i>服饰设计服装</p>
+                                            <p class="pt20">
+                                                        <a href="https://dasai.cfw.cn/person/competes/enroll/?dsid=1163" class="enlist" data-dsid="1163">立即参赛</a>
+                                                                                                <span class="r mt15 f12"><i class="iconfont mr5 f14 c9">&#xe7e1;</i>603</span>
+                                            </p>
+                                                        <span class="status start">征稿中</span>
+
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a href="/ds/1156.html" class="pic" target="_blank">
+                                                <img src="https://img1.cfw.cn/70001/202512/25/343915981617653350520251225023320.jpg" alt="第十五届“大浪杯”中国女装设计大赛">
+                                        </a>
+                                        <div class="content">
+                                            <p class="pt5">
+                                                <a href="/ds/1156.html" class="name" target="_blank">第十五届“大浪杯”中国女装设计大赛</a>
+                                            </p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe826;</i>2025.12.26-2026.04.03</p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe844;</i>服饰设计服装</p>
+                                            <p class="pt20">
+                                                                                                <span class="r mt15 f12"><i class="iconfont mr5 f14 c9">&#xe7e1;</i>736</span>
+                                            </p>
+                                                        <span class="status start">征稿中</span>
+
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a href="/ds/1192.html" class="pic" target="_blank">
+                                                <img src="https://img1.cfw.cn/images/news_images/title_images/2026/03/17/20260317171918827718..jpg" alt="2026第二届中国（大朗）时尚织片创意设计大赛火热征集（截至2026年5月）">
+                                        </a>
+                                        <div class="content">
+                                            <p class="pt5">
+                                                <a href="/ds/1192.html" class="name" target="_blank">2026第二届中国（大朗）时尚织片创意设计大赛火热征集（截至2026年5月）</a>
+                                            </p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe826;</i>2026.03.17-2026.05.30</p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe844;</i>服饰设计服装</p>
+                                            <p class="pt20">
+                                                                                                <span class="r mt15 f12"><i class="iconfont mr5 f14 c9">&#xe7e1;</i>305</span>
+                                            </p>
+                                                        <span class="status start">征稿中</span>
+
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a href="/ds/1183.html" class="pic" target="_blank">
+                                                <img src="https://img1.cfw.cn/70001/202602/05/345438219500152422520260205024132.png" alt="第十届黄金珠宝首饰设计大赛正式启动  “招金银楼杯”">
+                                        </a>
+                                        <div class="content">
+                                            <p class="pt5">
+                                                <a href="/ds/1183.html" class="name" target="_blank">第十届黄金珠宝首饰设计大赛正式启动  “招金银楼杯”</a>
+                                            </p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe826;</i>2026.02.05-2026.05.20</p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe844;</i>服饰设计饰品</p>
+                                            <p class="pt20">
+                                                                                                <span class="r mt15 f12"><i class="iconfont mr5 f14 c9">&#xe7e1;</i>418</span>
+                                            </p>
+                                                        <span class="status start">征稿中</span>
+
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a href="/ds/1165.html" class="pic" target="_blank">
+                                                <img src="https://img1.cfw.cn/70001/202601/16/344714809628950528120260116033556.png" alt="第三届‘千禧’杯服装设计大赛 作品征集通知 ">
+                                        </a>
+                                        <div class="content">
+                                            <p class="pt5">
+                                                <a href="/ds/1165.html" class="name" target="_blank">第三届‘千禧’杯服装设计大赛 作品征集通知 </a>
+                                            </p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe826;</i>2026.01.16-2026.03.30</p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe844;</i>服饰设计服装</p>
+                                            <p class="pt20">
+                                                                                                <span class="r mt15 f12"><i class="iconfont mr5 f14 c9">&#xe7e1;</i>497</span>
+                                            </p>
+                                                        <span class="status start">征稿中</span>
+
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a href="/ds/1158.html" class="pic" target="_blank">
+                                                <img src="https://img1.cfw.cn/70001/202601/04/344281166245999411220260104042433.jpg" alt="「纹艺觉醒 舟行东方」千年舟第二届花色及应用设计大赛 启动征集（截至2026.5.30）">
+                                        </a>
+                                        <div class="content">
+                                            <p class="pt5">
+                                                <a href="/ds/1158.html" class="name" target="_blank">「纹艺觉醒 舟行东方」千年舟第二届花色及应用设计大赛 启动征集（截至2026.5.30）</a>
+                                            </p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe826;</i>2026.01.04-2026.05.30</p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe844;</i>服饰设计图案</p>
+                                            <p class="pt20">
+                                                                                                <span class="r mt15 f12"><i class="iconfont mr5 f14 c9">&#xe7e1;</i>445</span>
+                                            </p>
+                                                        <span class="status start">征稿中</span>
+
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a href="/ds/1157.html" class="pic" target="_blank">
+                                                <img src="https://img1.cfw.cn/70001/202601/04/344281032707748659220260104041915.jpg" alt="2026 Advance Denim 可持续数字艺术大赛">
+                                        </a>
+                                        <div class="content">
+                                            <p class="pt5">
+                                                <a href="/ds/1157.html" class="name" target="_blank">2026 Advance Denim 可持续数字艺术大赛</a>
+                                            </p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe826;</i>2026.01.01-2026.04.30</p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe844;</i>服饰设计服装</p>
+                                            <p class="pt20">
+                                                                                                <span class="r mt15 f12"><i class="iconfont mr5 f14 c9">&#xe7e1;</i>296</span>
+                                            </p>
+                                                        <span class="status start">征稿中</span>
+
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a href="/ds/1154.html" class="pic" target="_blank">
+                                                <img src="/lib/images/res/ds_250x160.jpg" alt="“中国-巴西瑰宝&#12539;创意共生” 国际珠宝首饰设计大赛">
+                                        </a>
+                                        <div class="content">
+                                            <p class="pt5">
+                                                <a href="/ds/1154.html" class="name" target="_blank">“中国-巴西瑰宝&#12539;创意共生” 国际珠宝首饰设计大赛</a>
+                                            </p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe826;</i>2026.01.01-2026.04.30</p>
+                                            <p class="pt15 c6"><i class="iconfont f14 mr10">&#xe844;</i>服饰设计饰品</p>
+                                            <p class="pt20">
+                                                                                                <span class="r mt15 f12"><i class="iconfont mr5 f14 c9">&#xe7e1;</i>507</span>
+                                            </p>
+                                                        <span class="status start">征稿中</span>
+
+                                        </div>
+                                    </li>
+
+                        </ul>
+
+                <!-- 分页 -->
+                <div class="m-page mt20 mb30"><ul><li><a href="javascript:;" title="上一页"><i class="iconfont"></i></a></li><li class="on"><a href="javascript:;">1</a></li><li><a href='list0600-2.html'>2</a></li><li><a href='list0600-3.html'>3</a></li><li><a href='list0600-4.html'>4</a></li><li><a href='list0600-5.html'>5</a></li><li><a href='list0600-6.html'>...</a></li><li><a href='list0600-2.html' title='下一页'><i class="iconfont">&#xe7dc;</i></a></li></ul></div>
+            </div>
+            <div class="g-aside r pt30 mb30">
+                <div class="mt2"></div>
+                
+
+<div class="enlist-module bg-white rel ptb20 plr20">
+    <p class="f18">主办方</p>
+    <img src="/lib/images/res/competition_company.png" alt="" class="pic">
+    <a href="/ehr/draftcompetitionrelease/index/" class="btn">发布征稿</a>
+    <a href="javascript:;" class="btn rungamebtn">我要办赛</a>
+</div>
+                        <a href="https://dasai.cfw.cn/ds/1139.html" class="db mt20" target="_blank">
+                            <img src="https://img1.cfw.cn/70001/202511/18/342579382481374412920251118052134.jpg" alt="“九牧王杯” 爱知·名古屋亚运会中国体育代表团礼服设计大赛" class="db pct100">
+                        </a>
+
+                        <div class="competition-aside-tab bg-white mt20">
+                            <div class="tab">
+                                <span class="active">相关资讯</span>
+                            </div>
+                            <div class="box pt20 pb5 plr10">
+                                <ul class="pl15">
+                                            <li>
+                                                <a href="/news/719.html" class="name" target="_blank">灵玑奖&#12539;2025海丰环保集聚区时尚饰品设计大赛获奖名单及获奖作品</a>
+                                                <div class="info fix">
+                                                    <a href="/news/719.html" class="l" target="_blank">
+                                                            <img src="https://img1.cfw.cn/images/news_images/title_images/2026/03/18/2026031814230021748..jpg" alt="灵玑奖&#12539;2025海丰环保集聚区时尚饰品设计大赛获奖名单及获奖作品">
+                                                    </a>
+                                                    <p class="f12 c9">灵玑奖&#12539;2025海丰环保集聚区时尚饰品设计大赛获奖名单及获奖作品</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <a href="/news/716.html" class="name" target="_blank">2026哈尔滨国际时装周“未来之星”时装设计大赛奖项揭晓</a>
+                                                <div class="info fix">
+                                                    <a href="/news/716.html" class="l" target="_blank">
+                                                            <img src="https://img1.cfw.cn/images/news_images/title_images/2026/03/05/20260305162523548046..jpg" alt="2026哈尔滨国际时装周“未来之星”时装设计大赛奖项揭晓">
+                                                    </a>
+                                                    <p class="f12 c9">2月28日，由共青团哈尔滨市委、哈尔滨市妇女联合会、哈尔滨市南岗区人民政府、哈尔滨国际时装周组委会、黑龙江省服装鞋帽行业协会、哈尔滨红博商业共同主办的“冰雪筑霓裳 时尚链世界”——2026哈尔滨国际时装周“未来之星”时装设计大赛颁奖典礼在西城红场举行。</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <a href="/news/715.html" class="name" target="_blank">2026中国校服设计大赛【幼儿园园服系列】&【教师服系列】获奖公示</a>
+                                                <div class="info fix">
+                                                    <a href="/news/715.html" class="l" target="_blank">
+                                                            <img src="https://img1.cfw.cn/images/news_images/title_images/2026/03/04/20260304104131372269..jpg" alt="2026中国校服设计大赛【幼儿园园服系列】&【教师服系列】获奖公示">
+                                                    </a>
+                                                    <p class="f12 c9">由2026LINK FASHION校服·园服展（原ISUE展）同期举办的“中国校服设计大赛”，以“文化基因·未来校园——校服设计中的地域与创新”为主题，以《教育部关于全面实施学校美育浸润行动的通知》为指导，将中华优秀传统文化、地域特色与现代设计语言深度融合，通过校服这一载体实现“以衣载道”的美育目标，同时响应国家“双碳”战略，推动绿色设计与智能制造的结合。</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <a href="/news/712.html" class="name" target="_blank">【入围作品】2025第31届中国时装设计“新人奖”评选初评入围公示</a>
+                                                <div class="info fix">
+                                                    <a href="/news/712.html" class="l" target="_blank">
+                                                            <img src="https://img1.cfw.cn/images/news_images/title_images/2026/02/05/20260205144601614761..jpg" alt="【入围作品】2025第31届中国时装设计“新人奖”评选初评入围公示">
+                                                    </a>
+                                                    <p class="f12 c9">1月30日，第31届中国时装设计“新人奖”评选初评工作在北京顺利举行。本届评选共收到来自全国26个省、市、自治区，105所专业院校推荐的858位优秀学生作品，充分展现了中国时装设计后备力量的蓬勃生机。</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <a href="/news/707.html" class="name" target="_blank">小学组入围＋效果图｜2026全国校园服饰设计大赛（第一组-第二组入围作品）</a>
+                                                <div class="info fix">
+                                                    <a href="/news/707.html" class="l" target="_blank">
+                                                            <img src="https://img3.cfw.cn//editors/attached/image/20260128/2026012814063962380" alt="小学组入围＋效果图｜2026全国校园服饰设计大赛（第一组-第二组入围作品）">
+                                                    </a>
+                                                    <p class="f12 c9">2026全国校园服饰设计大赛以“闽风海韵·丝路华裳”为主题，要求参赛作品从福建地域文化、海洋精神和海上丝绸之路的历史文脉中汲取灵感，融合现代设计理念与功能性需求，创作出兼具文化内涵、时代气息、实用价值与国际视野的新一代校园服饰，推动校园服饰向个性化、品质化、文化属性发展，为校园生活增添亮丽色彩。</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <a href="/news/699.html" class="name" target="_blank">第二届“衣梦杯”婴、童服装校园设计大赛最终评比结果公示</a>
+                                                <div class="info fix">
+                                                    <a href="/news/699.html" class="l" target="_blank">
+                                                            <img src="https://img1.cfw.cn/images/news_images/title_images/2026/01/21/20260121131524734.jpg" alt="第二届“衣梦杯”婴、童服装校园设计大赛最终评比结果公示">
+                                                    </a>
+                                                    <p class="f12 c9">第二届“衣梦杯”婴、童服装校园设计大赛最终评比结果公示</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <a href="/news/693.html" class="name" target="_blank">中国核电操纵员服装设计大赛结果揭晓</a>
+                                                <div class="info fix">
+                                                    <a href="/news/693.html" class="l" target="_blank">
+                                                            <img src="https://img1.cfw.cn/images/news_images/title_images/2026/01/13/20260113133315734.jpg" alt="中国核电操纵员服装设计大赛结果揭晓">
+                                                    </a>
+                                                    <p class="f12 c9">中国核电操纵员服装设计大赛结果揭晓</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <a href="/news/688.html" class="name" target="_blank">第二十五届（2025）“真皮标志杯”中国国际箱包皮具设计大赛总决赛 结果公布</a>
+                                                <div class="info fix">
+                                                    <a href="/news/688.html" class="l" target="_blank">
+                                                            <img src="https://img1.cfw.cn/images/news_images/title_images/2025/12/26/20251226155919734.jpg" alt="第二十五届（2025）“真皮标志杯”中国国际箱包皮具设计大赛总决赛 结果公布">
+                                                    </a>
+                                                    <p class="f12 c9">第二十五届（2025）“真皮标志杯”中国国际箱包皮具设计大赛总决赛评选工作已经结束，最终评选出了各类别金银铜奖30个以及其他单项奖25个。现将结果予以公布。</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <a href="/news/686.html" class="name" target="_blank">奖项揭晓 | 第三届“未来之星”原创设计公益邀请赛（获奖名单+效果图+成衣）</a>
+                                                <div class="info fix">
+                                                    <a href="/news/686.html" class="l" target="_blank">
+                                                            <img src="https://img1.cfw.cn/images/news_images/title_images/2025/12/25/20251225134703734.jpg" alt="奖项揭晓 | 第三届“未来之星”原创设计公益邀请赛（获奖名单+效果图+成衣）">
+                                                    </a>
+                                                    <p class="f12 c9">第三届“未来之星”原创设计公益邀请赛终评于12月初顺利完成。本届大赛以“镜像东西”为主题，希冀通过比赛，找到更多热爱东方美学、勇于挑战传统、敢于突破界限、身体力行推广东方美学文化的年轻设计师，给予他们更广阔的舞台和更自由的表达空间，推动时尚行业朝着更多元化、个性化和可持续的方向蓬勃发展，生生不息。</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <a href="/news/681.html" class="name" target="_blank">2025丝路国潮·陕西服装设计大赛决赛获奖作品揭晓</a>
+                                                <div class="info fix">
+                                                    <a href="/news/681.html" class="l" target="_blank">
+                                                            <img src="https://img1.cfw.cn/images/news_images/title_images/2025/12/10/20251210160315734.jpg" alt="2025丝路国潮·陕西服装设计大赛决赛获奖作品揭晓">
+                                                    </a>
+                                                    <p class="f12 c9">此次大赛自启动以来，便吸引了全球时尚界的广泛关注与踊跃参与。据统计，大赛组委会共收到来自俄罗斯、法国、泰国、哈萨克斯坦、摩洛哥等多个国家，以及来自国内22个省、自治区、直辖市的高校、企业和独立设计师的作品共2216份。</p>
+                                                </div>
+                                            </li>
+
+                                </ul>
+                            </div>
+                        </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="g-foot">
+    <div class="art-footer">
+        <div class="footer-box">
+            <div class="main">
+                <div class="left">
+                    <div class="link mt10">
+                        <a href="/about/">关于我们</a>
+                        <a href="https://lib.cfw.cn/dasai/help/DaSaiDisclaimers.html" target="_blank">免责声明</a>
+                        <a href="https://dasai.cfw.cn/ds/">大赛案例</a>
+                        <a href="https://dasai.cfw.cn/topic/">专题页面</a>
+                    </div>
+                    <div class="info mt15 pt10">
+                        <span><a href="/about/#contactusdiv" target="_blank" style="color:#ffffff">联系方式</a></span>
+                        <span>服务热线：0579-89173025</span>
+                        <span>QQ：1364165696</span>
+                    </div>
+                </div>
+                <div class="right">
+                    <p><img src="/lib/images/res/logo.png" alt="综合设计大赛发布平台"></p>
+                    <p class="mt15 tc white">综合设计大赛发布平台</p>
+                </div>
+            </div>
+            <div class="tips">版权所有&#169; 2022-2026 CFW设计大赛 All Rights Reserved 互联网经营许可证： 浙B2-20110369</div>
+        </div>
+    </div>
+</div>
+
+
+    <!--右侧返回顶部-->
+
+    <div class="m-sidebar">
+    <div class="s-ewm ">
+        <a class="s-a" href="javscript:;">移动应用</a>
+        <div class="s-ewm-box slide-box" id="slide-box">
+            
+            <span><img src="/lib/images/res/QRcode.jpg" width="96" height="96" />添加微信客服</span>
+        </div>
+    </div>
+
+    <div class="s-kf">
+        <a class="s-a" href="javscript:;">联系客服</a>
+        <div class="s-kf-box slide-box">
+            <a class="kf" href="tencent://message/?uin=1364165696&Site=art.cfw.cn&Menu=yes" target="blank"
+               rel="nofollow">在线客服</a>
+            <p class="lx">0579-89173025</p>
+            <p class="ly">
+                <a href="/about/#contactusdiv" target="blank">
+                    建议
+                    投诉
+                    合作
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <div id="goToTop" class="dn"><a class="s-a go-top" href="javascript:;">返回顶部</a></div>
+    </div>
+<script>
+    require(["jquery"], function ($) {
+        $(window).scroll(function () {
+            //当window的scrolltop距离大于1时，go to 
+            if ($(this).scrollTop() > 300) {
+                $('#goToTop').fadeIn();
+            } else {
+                $('#goToTop').fadeOut();
+            }
+        });
+        $(document).on("click", "#goToTop", function () {
+            $('html,body').animate({
+                scrollTop: 0
+            }, 300);
+            return false;
+        })
+    })
+</script>
+
+</body>
+</html>
+<script>
+    var _hmt = _hmt || [];
+    (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?58f6e9f91476b30c11a888a9d694d868";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>
+

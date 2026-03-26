@@ -1,9 +1,6 @@
 <template>
   <div class="detail-optimization">
-    <!-- 恢复页面标题（之前误删导致布局高度计算偏差） -->
-    <div class="page-header">
-      <h1>细节优化工具</h1>
-    </div>
+
 
     <!-- 主布局：左(自定义工具区)-中(对话区)-右(预览+成果库) -->
     <div class="main-layout">
@@ -573,7 +570,7 @@ export default {
   display: grid;
   grid-template-columns: 280px 1fr 320px; 
   gap: 20px;
-  height: calc(100vh - 120px); /* 适配页面标题高度，预留足够空间 */
+  height: calc(100vh - 80px); /* 适配删除页面标题后的高度 */
   min-height: 600px; /* 小屏幕最小高度，防止布局坍塌 */
 }
 

@@ -7,7 +7,6 @@ import java.lang.annotation.Target;
 
 /**
  * 分页注解
- * 加在接口上，自动完成分页参数的转换
  */
 @Target({ElementType.PARAMETER, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

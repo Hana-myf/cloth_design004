@@ -13,7 +13,6 @@ public class RestTemplateConfig {
 
     @Bean
     public RestTemplate restTemplate() {
-        // 你可以在这里进行RestTemplate的进一步配置，如超时设置等
         return new RestTemplate();
     }
 

@@ -88,6 +88,7 @@ const routes = [
       }
     ]
   },
+
   {
     path: "/user",
     component: () => import(`@/views/user/Main.vue`),
@@ -182,6 +183,38 @@ const routes = [
           icon: 'el-icon-scissors', // 智能换装 - 剪刀/时尚
         },
       },
+      {
+        name: '服装制版',
+        path: "/womenswear",
+        component: () => import(`@/views/drafts/WomenswearMain.vue`),
+        meta: {
+          requireAuth: true,
+          icon: 'el-icon-s-operation',
+        }
+      },
+      {
+        name: '蛋糕裙制版',
+        path: "/womenswear/cake-skirt",
+        component: () => import(`@/views/drafts/WomenswearDrafting.vue`),
+        meta: {
+          requireAuth: true,
+          icon: 'el-icon-s-operation',
+          isHidden: true
+        },
+        isHidden: true
+      },
+      {
+        name: '太阳裙制版',
+        path: "/womenswear/sun-skirt",
+        component: () => import(`@/views/drafts/SunSkirtDrafting.vue`),
+        meta: {
+          requireAuth: true,
+          icon: 'el-icon-s-operation',
+          isHidden: true
+        },
+        isHidden: true
+      },
+
     ]
   }
 ];

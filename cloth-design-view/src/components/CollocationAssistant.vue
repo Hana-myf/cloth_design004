@@ -64,7 +64,7 @@ export default {
     this.messages.push({
       content: '你好！我可以帮你搭配服装配饰，有什么需求吗？',
       isUser: false,
-      avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/chatsdk-logo.png'
+      avatar: 'https://pic1.imgdb.cn/item/69c54f5f53701b6d63d9b12c.png'
     });
   },
   methods: {
@@ -84,7 +84,7 @@ export default {
       const aiMsgIndex = this.messages.push({
         content: '',
         isUser: false,
-        avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/chatsdk-logo.png'
+        avatar: 'https://pic1.imgdb.cn/item/69c54f5f53701b6d63d9b12c.png'
       }) - 1;
 
       try {
@@ -164,7 +164,7 @@ export default {
         this.messages.push({
           content: '你好！我可以帮你搭配服装配饰，有什么需求吗？',
           isUser: false,
-          avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/chatsdk-logo.png'
+          avatar: 'https://pic1.imgdb.cn/item/69c54f5f53701b6d63d9b12c.png'
         });
       }
     }

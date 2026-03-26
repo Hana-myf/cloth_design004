@@ -449,8 +449,17 @@ export default {
                 // 根据角色解析路由
                 const roleRouteKey = userRole === 1 ? 'admin' : 'user';
                 const roleRoute = router.options.routes.find(route => route.path.startsWith(`/${roleRouteKey}`));
+                
+                // 获取独立的路由菜单（如服装制版）
+                const independentRoutes = router.options.routes.filter(route => 
+                    route.meta && route.meta.requireAuth && 
+                    !route.path.startsWith('/admin') && 
+                    !route.path.startsWith('/user')
+                );
+                
                 if (roleRoute) {
-                    this.routers = roleRoute.children;
+                    // 合并角色路由和独立路由
+                    this.routers = [...roleRoute.children, ...independentRoutes];
                 } else {
                     console.error('未能找到对应角色的路由配置');
                 }
