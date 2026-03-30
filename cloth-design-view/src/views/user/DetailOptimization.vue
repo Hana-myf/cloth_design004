@@ -88,7 +88,7 @@
           </div>
           <div v-if="isLoading" class="loading">
             <div class="custom-spinner"></div>
-            <p>方案生成中...</p>
+            <p>{{ isUploading ? '图片上传中...' : '方案生成中...' }}</p>
           </div>
         </div>
         
@@ -205,13 +205,14 @@ export default {
       userInput: '',
       savedImages: [],
       isLoading: false,
+      isUploading: false,
       currentFabric: null,
       currentColors: null,
       currentUploadedImageUrl: null,
       imageUrlInput: '',
       imgbbApiKey: 'ddfd3ce61ba74d50a1d1167d498e4c0f',
       cozeImageEditorConfig: {
-        apiKey: 'pat_l71GjeLrzmzEzh0d8R5saRWgJFrlhAL79YJbt1KJPLDSmHt2OuXaxom7A92dKjqG',
+        apiKey: 'pat_oNhoddgk898CKMqK8avnbPzZt7UlcXoiWxHW3QXanyIdTX3YExf0JHVKfHdXDgYH',
         botId: '7533205966545272882',
         userId: 'user_' + Math.random().toString(36).substr(2, 9),
         defaultImageUrl: "https://ark-project.tos-cn-beijing.volces.com/doc_image/seededit_i2i.jpeg"
@@ -270,6 +271,7 @@ export default {
       const imageFile = file.raw;
       if (!imageFile || this.isLoading) return;
       this.isLoading = true;
+      this.isUploading = true;
       const formData = new FormData();
       formData.append('image', imageFile);
       try {
@@ -288,6 +290,7 @@ export default {
         this.$message.error(`上传失败：${error.message || '未知错误'}`);
       } finally {
         this.isLoading = false;
+        this.isUploading = false;
       }
     },
     // 发送设计需求
@@ -341,6 +344,7 @@ export default {
     // 生成AI设计方案
     async generateAIResponse(imageUrl) {
       this.isLoading = true;
+      this.isUploading = false;
       const aiMsgPlaceholder = {
         role: 'ai',
         text: '已接单，AI正在全力创作中，请耐心等待...',
@@ -437,13 +441,17 @@ export default {
           }
         }
         if (finalImageUrlFromAI) {
-          const displayText = fullReplyContent.replace(/\[.*?\]\((https?:\/\/[^\s)]+\.(?:jpg|png|jpeg|gif|webp|bmp))\)/g, '').trim();
+          let displayText = fullReplyContent.replace(/\[.*?\]\((https?:\/\/[^\s)]+\.(?:jpg|png|jpeg|gif|webp|bmp))\)/g, '').trim();
+          // 对回复内容进行去重处理
+          displayText = this.removeDuplicateContent(displayText);
           this.$set(this.chatRecords[feedbackMessageIndex], 'text', displayText);
           this.$set(this.chatRecords[feedbackMessageIndex], 'imageUrl', finalImageUrlFromAI);
           this.lastAiReply = fullReplyContent;
         } else {
           if (fullReplyContent.trim()) {
-            this.$set(this.chatRecords[feedbackMessageIndex], 'text', fullReplyContent.trim());
+            // 对回复内容进行去重处理
+            const processedText = this.removeDuplicateContent(fullReplyContent.trim());
+            this.$set(this.chatRecords[feedbackMessageIndex], 'text', processedText);
             this.lastAiReply = fullReplyContent;
           } else {
             throw new Error('AI 生成成功，但未找到图片 URL 或有效文本回复');
@@ -520,6 +528,40 @@ export default {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
       throw new Error('图片生成超时，请稍后再试');
+    },
+
+    /* 移除重复内容 */
+    removeDuplicateContent(content) {
+      if (!content) return content;
+      
+      // 首先尝试检测完全重复的内容
+      const contentLength = content.length;
+      if (contentLength > 10) { // 只有当内容足够长时才进行去重
+        // 检查是否有重复的一半内容
+        const halfLength = Math.floor(contentLength / 2);
+        const firstHalf = content.substring(0, halfLength);
+        const secondHalf = content.substring(halfLength);
+        
+        // 如果前后两半内容相似，只保留前半部分
+        if (firstHalf.trim() === secondHalf.trim()) {
+          return firstHalf.trim() + (content.endsWith('。') ? '。' : '');
+        }
+      }
+      
+      // 然后检测重复的句子
+      const sentences = content.split('。').filter(s => s.trim());
+      const uniqueSentences = [];
+      const seen = new Set();
+      
+      for (const sentence of sentences) {
+        const trimmed = sentence.trim();
+        if (trimmed && !seen.has(trimmed)) {
+          seen.add(trimmed);
+          uniqueSentences.push(trimmed);
+        }
+      }
+      
+      return uniqueSentences.join('。') + (content.endsWith('。') ? '。' : '');
     }
   }
 };
@@ -878,7 +920,7 @@ export default {
 }
 .img-placeholder-container {
   width: 100%;
-  max-height: 220px; /* 核心：限制预览区最大高度 */
+  max-height: 286px; /* 核心：限制预览区最大高度，扩大1.3倍 */
   aspect-ratio: 1/1; /* 保持正方形，但不超过max-height */
   margin: 0 auto 10px;
   position: relative;

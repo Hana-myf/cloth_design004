@@ -48,10 +48,12 @@ export default {
       userInput: '',
       isLoading: false,
       isMinimized: false,
-      apiKey: 'pat_l71GjeLrzmzEzh0d8R5saRWgJFrlhAL79YJbt1KJPLDSmHt2OuXaxom7A92dKjqG',
+      apiKey: 'pat_oNhoddgk898CKMqK8avnbPzZt7UlcXoiWxHW3QXanyIdTX3YExf0JHVKfHdXDgYH',
       robotId: '7533187838620631066',
       userId: 'user_' + Math.random().toString(36).substr(2, 9),
       apiUrl: 'https://api.coze.cn/v3/chat',
+      weatherData: null,
+      weatherApiKey: 'YOUR_WEATHER_API_KEY', // 需要替换为真实的天气API密钥
       recommendList: [
         { style: '通勤风', desc: '羊毛面料 + 深灰/藏青 + 简约剪裁 + 单排扣设计' },
         { style: '休闲风', desc: '牛仔面料 + 水洗蓝 + 破洞元素 + 宽松版型' },
@@ -66,6 +68,8 @@ export default {
       isUser: false,
       avatar: 'https://pic1.imgdb.cn/item/69c54f5f53701b6d63d9b12c.png'
     });
+    // 获取天气数据
+    this.fetchWeather();
   },
   methods: {
     async sendMessage() {
@@ -74,7 +78,7 @@ export default {
       this.messages.push({
         content: this.userInput,
         isUser: true,
-        avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/coze-logo.png'
+        avatar: 'https://pic1.imgdb.cn/item/69c347ce2cb231a0e879475c.png'
       });
 
       const userMessage = this.userInput;
@@ -100,6 +104,7 @@ export default {
             stream: true,
             auto_save_history: true,
             additional_messages: [
+              { role: "system", content: `当前天气信息：${this.getWeatherInfo()}\n请根据天气情况给出合适的服装搭配建议。`, content_type: "text" },
               { role: "user", content: userMessage, content_type: "text" }
             ]
           })
@@ -131,7 +136,12 @@ export default {
                 try {
                   const data = JSON.parse(dataStr);
                   if (data.content) {
-                    fullReply += data.content;
+                    // 去除{{output}}前缀
+                    let content = data.content;
+                    if (content.startsWith('{{output}}')) {
+                      content = content.replace('{{output}}', '');
+                    }
+                    fullReply += content;
                     this.messages[aiMsgIndex].content = fullReply;
                     this.scrollToBottom();
                   }
@@ -167,6 +177,77 @@ export default {
           avatar: 'https://pic1.imgdb.cn/item/69c54f5f53701b6d63d9b12c.png'
         });
       }
+    },
+
+    // 获取当前位置
+    getCurrentLocation() {
+      return new Promise((resolve, reject) => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+              });
+            },
+            (error) => {
+              console.error('获取位置失败:', error);
+              // 如果获取位置失败，使用默认位置（北京）
+              resolve({ latitude: 39.9042, longitude: 116.4074 });
+            }
+          );
+        } else {
+          console.error('浏览器不支持地理定位');
+          // 如果浏览器不支持地理定位，使用默认位置（北京）
+          resolve({ latitude: 39.9042, longitude: 116.4074 });
+        }
+      });
+    },
+
+    // 获取天气数据
+    async fetchWeather() {
+      try {
+        // 获取当前位置
+        const location = await this.getCurrentLocation();
+        
+        // 使用OpenWeatherMap API获取天气数据
+        // 注意：这里使用了免费的OpenWeatherMap API，需要替换为真实的API密钥
+        const apiKey = this.weatherApiKey || 'YOUR_OPENWEATHERMAP_API_KEY';
+        const response = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${location.latitude}&lon=${location.longitude}&units=metric&lang=zh_cn&appid=${apiKey}`
+        );
+        
+        if (!response.ok) {
+          throw new Error('获取天气数据失败');
+        }
+        
+        const data = await response.json();
+        this.weatherData = {
+          city: data.name,
+          temperature: Math.round(data.main.temp),
+          description: data.weather[0].description,
+          icon: data.weather[0].icon
+        };
+        
+        console.log('天气数据获取成功:', this.weatherData);
+      } catch (error) {
+        console.error('获取天气数据失败:', error);
+        // 如果API调用失败，使用模拟数据
+        this.weatherData = {
+          city: '北京',
+          temperature: 22,
+          description: '晴',
+          icon: '01d'
+        };
+      }
+    },
+
+    // 获取天气信息文本
+    getWeatherInfo() {
+      if (!this.weatherData) {
+        return '当前天气信息获取中...';
+      }
+      return `${this.weatherData.city}，${this.weatherData.temperature}°C，${this.weatherData.description}`;
     }
   }
 };

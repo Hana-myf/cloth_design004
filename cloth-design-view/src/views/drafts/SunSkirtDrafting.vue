@@ -172,7 +172,52 @@ export default {
     startDrag(e) { this.isDragging = true; this.startX = e.clientX - this.translateX; this.startY = e.clientY - this.translateY; },
     drag(e) { if (this.isDragging) { this.translateX = e.clientX - this.startX; this.translateY = e.clientY - this.startY; } },
     endDrag() { this.isDragging = false; },
-    exportPDF() { this.$message.success("太阳裙 PDF 裁切图导出成功"); },
+    exportPDF() {
+      // 获取SVG元素
+      const svgElement = document.querySelector('.pattern-svg');
+      if (!svgElement) {
+        this.$message.error("无法获取SVG元素");
+        return;
+      }
+      
+      // 将SVG转换为字符串
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      
+      // 创建一个Blob对象
+      const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+      const url = URL.createObjectURL(svgBlob);
+      
+      // 创建一个图片元素来加载SVG
+      const img = new Image();
+      img.onload = () => {
+        // 创建一个canvas元素
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // 在canvas上绘制图片
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        
+        // 将canvas转换为图片URL
+        const pngUrl = canvas.toDataURL('image/png');
+        
+        // 创建一个下载链接
+        const link = document.createElement('a');
+        link.href = pngUrl;
+        link.download = `太阳裙制版_${new Date().getTime()}.png`;
+        link.click();
+        
+        // 清理
+        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(pngUrl);
+        
+        this.$message.success("太阳裙 PDF 裁切图导出成功");
+      };
+      img.src = url;
+    },
     
     // 生成1/4圆弧路径的辅助函数
     describeArc(x, y, innerR, outerR) {
@@ -192,7 +237,7 @@ export default {
 
 <style scoped lang="scss">
 .womenswear-drafting {
-  width: 100%; min-height: 100vh; background: #f0f2f5; padding: 15px; box-sizing: border-box;
+  width: 100%; min-height: 100vh; background: #fff9e6; padding: 15px; box-sizing: border-box;
 }
 .workspace { display: flex; gap: 15px; align-items: stretch; height: calc(100vh - 30px); }
 

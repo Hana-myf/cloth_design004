@@ -70,7 +70,7 @@ export default {
         legend: {
           orient: 'vertical',
           left: 'left',
-          show: false,
+          show: true,
         },
         series: [
           {

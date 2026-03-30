@@ -122,8 +122,10 @@ export default {
   border-radius: 8px; /* 匹配chatvue圆角 */
 }
 
-/* 保存按钮：完全匹配chatvue的按钮风格 */
+/* 保存按钮：完全匹配chatvue的按钮风格，居中显示 */
 .save-img-btn {
+  display: block;
+  margin: 0 auto;
   padding: 8px 20px;
   background-color: #f5dca8; /* 匹配chatvue按钮底色 */
   color: #8a7d5e; /* 暖色调文字 */

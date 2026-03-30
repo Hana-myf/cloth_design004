@@ -26,7 +26,10 @@
             </div>
           </div>
         </div>
-        <div v-if="isLoading" class="loading">AI 正在思考...</div>
+        <div v-if="isLoading" class="loading">
+          <div class="custom-spinner"></div>
+          <p>{{ isUploading ? '图片上传中...' : 'AI 正在思考...' }}</p>
+        </div>
       </div>
 
       <div v-if="!isMinimized" class="chat-input">
@@ -93,8 +96,9 @@ export default {
       messages: [],
       userInput: '',
       isLoading: false,
+      isUploading: false,
       isMinimized: false,
-      apiKey: 'pat_l71GjeLrzmzEzh0d8R5saRWgJFrlhAL79YJbt1KJPLDSmHt2OuXaxom7A92dKjqG',
+      apiKey: 'pat_oNhoddgk898CKMqK8avnbPzZt7UlcXoiWxHW3QXanyIdTX3YExf0JHVKfHdXDgYH',
       robotId: '7475343940674371584',
       userId: 'user_' + Math.random().toString(36).substr(2, 9),
       apiUrl: 'https://api.coze.cn/v3/chat',
@@ -103,6 +107,7 @@ export default {
       // 注释掉原错误赋值：避免初始化时拿不到store
       // currentUserId: this.$store.state.user.userInfo?.id || '', 
       uploadUrl: '/file/upload',
+      imgbbApiKey: 'ddfd3ce61ba74d50a1d1167d498e4c0f',
     };
   },
   mounted() {
@@ -174,36 +179,40 @@ export default {
       }
 
       this.isLoading = true;
+      this.isUploading = true;
       try {
         // 构建FormData
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('image', file);
 
-        // 调用后端上传接口
-        const response = await this.$axios.post(this.uploadUrl, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+        // 使用imgbb API上传图片获取公网链接
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${this.imgbbApiKey}`, {
+          method: 'POST',
+          body: formData
         });
 
-        if (response.data.code === 200) {
-          const imageUrl = response.data.data; // 后端返回的图片URL
+        const result = await response.json();
+        if (result.success) {
+          const imageUrl = result.data.url; // imgbb返回的公网图片URL
           // 将图片添加到聊天记录
           this.messages.push({
             content: `<img src="${imageUrl}" class="chat-image" alt="上传的图片">`,
             isUser: true,
-            avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/coze-logo.png'
+            avatar: 'https://pic1.imgdb.cn/item/69c347ce2cb231a0e879475c.png'
           });
           this.scrollToBottom();
 
           // 自动发送图片给AI处理（如果需要）
           this.sendMessageWithImage(imageUrl);
         } else {
-          this.$message.error(response.data.msg || '上传失败');
+          throw new Error(result.error?.message || 'ImgBB API 返回错误');
         }
       } catch (error) {
         console.error('文件上传失败:', error);
-        this.$message.error('上传失败，请重试');
+        this.$message.error(`上传失败：${error.message || '未知错误'}`);
       } finally {
         this.isLoading = false;
+        this.isUploading = false;
       }
     },
     sendMessageWithImage(imageUrl) {
@@ -231,6 +240,62 @@ export default {
       }
     },
     parseContent(content) {
+      // 检测并移除重复内容
+      if (content) {
+        // 首先尝试检测完全重复的内容
+        const contentLength = content.length;
+        if (contentLength > 10) { // 只有当内容足够长时才进行去重
+          // 检查是否有重复的一半内容
+          const halfLength = Math.floor(contentLength / 2);
+          const firstHalf = content.substring(0, halfLength);
+          const secondHalf = content.substring(halfLength);
+          
+          // 如果前后两半内容相似，只保留前半部分
+          if (firstHalf.trim() === secondHalf.trim()) {
+            content = firstHalf.trim() + (content.endsWith('。') ? '。' : '');
+          }
+        }
+        
+        // 然后检测重复的句子
+        const sentences = content.split('。').filter(s => s.trim());
+        const uniqueSentences = [];
+        const seen = new Set();
+        
+        for (const sentence of sentences) {
+          const trimmed = sentence.trim();
+          if (trimmed && !seen.has(trimmed)) {
+            seen.add(trimmed);
+            uniqueSentences.push(trimmed);
+          }
+        }
+        
+        let processedContent = uniqueSentences.join('。') + (content.endsWith('。') ? '。' : '');
+        
+        // 移除**标记
+        processedContent = processedContent.replace(/\*\*(.*?)\*\*/g, '$1');
+        
+        // 处理层级格式，将Markdown转换为HTML
+        // 处理三级标题，确保前面有换行
+        processedContent = processedContent.replace(/###\s+(.*?)(?=###|$)/g, '<br><h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 16px; color: #8a7d5e;">$1</h3>');
+        // 处理二级标题，确保前面有换行
+        processedContent = processedContent.replace(/##\s+(.*?)(?=##|$)/g, '<br><h2 style="margin-top: 20px; margin-bottom: 15px; font-size: 18px; color: #8a7d5e;">$1</h2>');
+        // 处理一级标题，确保前面有换行
+        processedContent = processedContent.replace(/^#\s+(.*?)(?=#|$)/g, '<br><h1 style="margin-top: 25px; margin-bottom: 20px; font-size: 20px; color: #8a7d5e;">$1</h1>');
+        // 处理列表项
+        processedContent = processedContent.replace(/(\d+\.\s+)(.*?)(?=\d+\.\s+|$)/g, '<p style="margin: 5px 0; padding-left: 20px;">$1$2</p>');
+        // 确保开头没有多余的换行
+        processedContent = processedContent.replace(/^<br>/, '');
+        // 确保标题之间有足够的间距
+        processedContent = processedContent.replace(/<\/h[1-3]><br>/g, '</h$1>');
+        // 确保标题和列表之间有足够的间距
+        processedContent = processedContent.replace(/<\/h[1-3]>(\d+\.\s+)/g, '</h$1><br>$2');
+        // 确保列表项之间有足够的间距
+        processedContent = processedContent.replace(/<\/p><p style="margin: 5px 0; padding-left: 20px;">/g, '</p><br><p style="margin: 5px 0; padding-left: 20px;">');
+        // 确保段落之间有足够的间距
+        processedContent = processedContent.replace(/\。<br>/g, '。<br><br>');
+        
+        return processedContent;
+      }
       return content;
     },
     async sendMessage() {
@@ -240,12 +305,13 @@ export default {
       this.messages.push({
         content: this.userInput,
         isUser: true,
-        avatar: 'https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze/coze-logo.png'
+        avatar: 'https://pic1.imgdb.cn/item/69c347ce2cb231a0e879475c.png'
       });
 
       const userMessage = this.userInput;
       this.userInput = '';
       this.isLoading = true;
+      this.isUploading = false;
 
       const aiMsgIndex = this.messages.push({
         content: '',
@@ -555,6 +621,21 @@ export default {
   background-color: #fff8e8;
   border-radius: 8px;
   border: 1px dashed #f0e8d0;
+}
+
+.custom-spinner {
+  margin: 0 auto 8px;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #f0c880;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* 聊天输入区域（暖色调替换原蓝色） */

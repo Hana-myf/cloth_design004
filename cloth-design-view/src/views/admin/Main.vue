@@ -13,7 +13,8 @@
             <div class="chart-card">
                 <PieChart 
                     tag="作品统计" 
-                    chartType="dept" 
+                    :types="worksTypes" 
+                    :values="worksValues"
                     bag="#f5f7fa" 
                     fontColor="#333"
                     height="320px"
@@ -22,7 +23,8 @@
             <div class="chart-card">
                 <PieChart 
                     tag="用户统计" 
-                    chartType="user" 
+                    :types="userTypes" 
+                    :values="userValues"
                     bag="#f5f7fa" 
                     fontColor="#333"
                     height="320px"
@@ -62,7 +64,13 @@ export default {
     data() {
         return {
             // 页面状态
-            loading: false
+            loading: false,
+            // 作品统计数据
+            worksTypes: ['虚拟试衣作品', '用户设计'],
+            worksValues: [7, 28],
+            // 用户统计数据
+            userTypes: ['管理员', '普通用户', '被禁言用户'],
+            userValues: [2, 10, 1]
         }
     },
     created() {

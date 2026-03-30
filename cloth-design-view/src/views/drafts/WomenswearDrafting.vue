@@ -39,9 +39,14 @@
 
           <div class="divider"></div>
           
-          <!-- 示意图直接展示在侧边栏 -->
+          <!-- 蛋糕裙原理示意图 -->
           <div class="sidebar-diagram">
-            <label class="parameter-label">款式示意图 View</label>
+            <label class="parameter-label">裁剪原理</label>
+            <div class="math-box">
+              <p>每层高度 = 总裙长 / 层数</p>
+              <p>第一层宽度 = 腰围 × 1.5</p>
+              <p>第n层宽度 = 第n-1层宽度 × 1.6</p>
+            </div>
             <img src="https://pic1.imgdb.cn/item/69c2a1642cb231a0e876d987.png" class="mini-diagram" />
           </div>
 
@@ -79,6 +84,9 @@
               </el-button>
               <el-button size="mini" @click="showFlowChart = !showFlowChart" type="success" plain>
                 <i class="el-icon-s-order"></i> 流程图
+              </el-button>
+              <el-button size="mini" @click="showMath = !showMath" type="primary" plain>
+                <i class="el-icon-guide"></i> 计算详情
               </el-button>
             </div>
             <span class="zoom-indicator">当前缩放: {{ Math.round(zoom * 100) }}%</span>
@@ -120,7 +128,18 @@
 
         <el-dialog :visible.sync="showMeasurementGuide" title="测量指南" width="500px"><div style="padding:20px">根据腰围计算各层宽度...</div></el-dialog>
         <el-dialog :visible.sync="showFlowChart" title="流程图" width="700px" center>
-            <img src="https://pic1.imgdb.cn/item/69c253272cb231a0e875c40d.png" style="width:100%" />
+            <img src="https://pic1.imgdb.cn/item/69ca89fa628aa9d58f8658dd.png" style="width:100%" />
+        </el-dialog>
+
+        <el-dialog :visible.sync="showMath" title="计算详情" width="400px">
+          <div style="padding:20px; line-height: 2">
+            <p>1. 总裙长: {{ params.skirtLength }} cm</p>
+            <p>2. 层数: {{ params.layer }}</p>
+            <p>3. 每层高度: {{ (params.skirtLength / params.layer).toFixed(2) }} cm</p>
+            <p>4. 第一层宽度: {{ Math.round(params.waist * 1.5) }} cm</p>
+            <p v-if="params.layer >= 2">5. 第二层宽度: {{ Math.round(params.waist * 1.5 * 1.6) }} cm</p>
+            <p v-if="params.layer === 3">6. 第三层宽度: {{ Math.round(params.waist * 1.5 * 1.6 * 1.6) }} cm</p>
+          </div>
         </el-dialog>
 
         <div class="copyright">©2026 纤云制版软件 | 工业标准渲染</div>
@@ -145,6 +164,7 @@ export default {
       canvasHeight: 1200,
       showMeasurementGuide: false,
       showFlowChart: false,
+      showMath: false,
       params: { size: "S", waist: 68, skirtLength: 85, layer: 3 },
       sizeMap: { XS: 64, S: 68, M: 72, L: 76 }
     };
@@ -201,6 +221,18 @@ export default {
     border: 1px solid #f0f0f0;
     margin-top: 5px;
   }
+}
+
+/* 数学公式盒子样式 */
+.math-box {
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 10px;
+  border: 1px dashed #ddd;
 }
 
 /* 按钮对齐样式 */

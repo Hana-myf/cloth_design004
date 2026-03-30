@@ -74,7 +74,7 @@ export default {
       // 图像编辑智能体配置
       editorConfig: {
         // 走代理，无需直连 apiUrl
-        apiKey: 'pat_l71GjeLrzmzEzh0d8R5saRWgJFrlhAL79YJbt1KJPLDSmHt2OuXaxom7A92dKjqG',
+        apiKey: 'pat_oNhoddgk898CKMqK8avnbPzZt7UlcXoiWxHW3QXanyIdTX3YExf0JHVKfHdXDgYH',
         botId: '7533205966545272882',
         // 建议固定，便于后台筛选追踪
         userId: 'image_editor_user_001',

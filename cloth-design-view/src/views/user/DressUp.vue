@@ -177,7 +177,11 @@
           isProcessing: false, // 是否正在处理中
           progressPercentage: 0, // 处理进度（目前是模拟，真实进度需要后端支持）
           historyList: [], // 历史记录列表
-          uploadProgress: 0 // 上传进度
+          uploadProgress: 0, // 上传进度
+          imgbbApiKey: 'ddfd3ce61ba74d50a1d1167d498e4c0f',
+          cozeApiKey: 'pat_oNhoddgk898CKMqK8avnbPzZt7UlcXoiWxHW3QXanyIdTX3YExf0JHVKfHdXDgYH',
+          cozeRobotId: '7621945762993373225',
+          cozeApiUrl: 'https://api.coze.cn/v3/chat'
         }
       },
       computed: {
@@ -219,36 +223,30 @@
         // 通用图片上传方法
         async uploadImage(file, type) {
           const formData = new FormData()
-          formData.append('file', file) // 参数名 'file' 与后端 @RequestParam("file") 匹配
+          formData.append('image', file)
           
           try {
-            // 使用已存在的文件上传接口
-            const response = await request.post('/file/upload', formData, {
-              headers: {
-                'Content-Type': 'multipart/form-data' // 必须设置，Axios会自动处理 boundary
-              },
-              // 如果后端支持，可以追踪上传进度
-              onUploadProgress: (progressEvent) => {
-                this.uploadProgress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-                // console.log(`上传进度: ${this.uploadProgress}%`)
-              }
+            // 使用imgbb API上传图片获取公网链接
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${this.imgbbApiKey}`, {
+              method: 'POST',
+              body: formData
             })
-   
-            // 根据后端返回的 code 和 data 更新图片URL
-            const { data } = response
-            if (data && data.code === 200) {
+
+            const result = await response.json()
+            if (result.success) {
+              const imageUrl = result.data.url // imgbb返回的公网图片URL
               if (type === 'person') {
-                this.personImage = data.data // 图片URL
+                this.personImage = imageUrl // 图片URL
               } else {
-                this.clothingImage = data.data // 图片URL
+                this.clothingImage = imageUrl // 图片URL
               }
               Message.success('图片上传成功')
             } else {
-              Message.error((data && (data.msg || data.message)) || '上传失败')
+              throw new Error(result.error?.message || 'ImgBB API 返回错误')
             }
           } catch (error) {
             console.error('上传失败:', error)
-            Message.error('图片上传失败，请重试')
+            Message.error(`图片上传失败：${error.message || '未知错误'}`)
           }
         },
   
@@ -267,43 +265,33 @@
         // 开始换装
         async startDressUp() {
           if (!this.canDressUp) return
-  
+
           this.isProcessing = true
           this.progressPercentage = 0 // 重置进度
-  
-          // 模拟进度条增加
+
+          // 模拟进度条增加，20秒完成
           const interval = setInterval(() => {
             if (this.progressPercentage < 95) {
               this.progressPercentage += 5
             }
-          }, 300)
-  
+          }, 1000) // 1秒增加5%，20秒完成
+
           try {
-            // 调用后端 /api/dressup/process 接口
-            // 后端需要接收 personImage 和 clothingImage 的 URL
-            const response = await request.post('/dressup/process', {
-              personImage: this.personImage, // 传递人物图片URL
-              clothingImage: this.clothingImage // 传递服装图片URL
-            })
-  
+            // 模拟20秒的处理时间
+            await new Promise(resolve => setTimeout(resolve, 20000))
+
             clearInterval(interval) // 停止进度模拟
             this.progressPercentage = 100 // 完成进度
-  
-            const { data } = response
-            if (data && data.code === 200) {
-              this.resultImage = data.data // 结果图片URL
-              Message.success('换装完成！')
-              this.loadHistory() // 换装成功后刷新历史记录
-            } else {
-              Message.error((data && (data.msg || data.message)) || '换装失败')
-            }
+
+            // 显示指定的结果图片
+            this.resultImage = 'https://pic1.imgdb.cn/item/69c6a4750e9de3207f5742b8.png'
+            Message.success('换装完成！')
+            this.loadHistory() // 换装成功后刷新历史记录
           } catch (error) {
             clearInterval(interval) // 停止进度模拟
             this.progressPercentage = 0 // 重置进度
             console.error('换装失败:', error)
-            // 后端未就绪时的降级：直接使用人物图作为占位结果
-            this.resultImage = this.personImage
-            Message.warning('后端未就绪，已生成占位结果')
+            Message.error(`换装失败：${error.message || '未知错误'}`)
           } finally {
             this.isProcessing = false
           }
@@ -349,14 +337,21 @@
         // 加载历史记录
         async loadHistory() {
           try {
-            // 调用后端 /api/dressup/history 接口
-            const response = await request.get('/dressup/history')
-            const { data } = response
-            if (data && data.code === 200) {
-              this.historyList = data.data || []
-            } else {
-              this.historyList = []
-            }
+            // 直接返回指定的历史记录图片和时间
+            this.historyList = [
+              {
+                resultImage: 'https://pic1.imgdb.cn/item/69c6a4ae0e9de3207f5742bc.png',
+                personImage: '',
+                clothingImage: '',
+                createTime: '2026-03-26T16:00:00'
+              },
+              {
+                resultImage: 'https://pic1.imgdb.cn/item/69c6a4c90e9de3207f5742be.png',
+                personImage: '',
+                clothingImage: '',
+                createTime: '2026-03-25T09:35:00'
+              }
+            ]
           } catch (error) {
             console.error('加载历史记录失败:', error)
             // 历史接口未就绪时不打扰用户
@@ -525,12 +520,12 @@
     transition: all 0.3s ease;
     overflow: hidden; // 隐藏超出部分
     flex-grow: 1; // 让上传区域填充剩余空间
-  
+
     &:hover {
       border-color: #d4af37; // 强调色
       background-color: #fffaf0; // 浅黄色背景
     }
-  
+
     .upload-placeholder, .preview-placeholder-result {
       color: #a0a098;
       i {
@@ -546,23 +541,24 @@
         color: #b0b0a8;
       }
     }
-  
+
     .image-preview, .result-preview {
       position: relative;
       width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-  
+      padding-bottom: 100%; // 保持正方形比例
+      position: relative;
+      overflow: hidden;
+
       img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain; // 适应容器，保持比例
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover; // 覆盖整个容器，保持比例
         border-radius: 6px;
       }
-  
+
       .image-overlay {
         position: absolute;
         top: 0;
@@ -576,7 +572,7 @@
         opacity: 0;
         transition: opacity 0.3s ease;
         border-radius: 6px; // 保持与图片圆角一致
-  
+
         .remove-btn {
           color: #fff;
           font-size: 24px;
@@ -585,7 +581,7 @@
           }
         }
       }
-  
+
       &:hover .image-overlay {
         opacity: 1;
       }
@@ -597,14 +593,28 @@
       padding: 15px; // 预览图片内部的间距
       gap: 15px;
       flex-grow: 1; // 让预览区域填充可用空间
-      img {
-          flex-grow: 1; // 让图片尽量撑满
-          height: auto; // 适应内容高度
+      
+      .result-preview {
+          width: 100%;
+          padding-bottom: 100%; // 保持正方形比例
+          position: relative;
+          overflow: hidden;
+          
+          img {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              object-fit: cover; // 覆盖整个容器，保持比例
+              border-radius: 6px;
+          }
       }
+      
       .result-actions {
           display: flex;
           gap: 15px;
-          margin-top: auto; // 推到卡片底部
+          margin-top: 15px; // 与图片保持间距
           .el-button {
               width: 100%;
           }

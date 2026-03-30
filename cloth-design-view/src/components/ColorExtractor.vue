@@ -158,14 +158,38 @@ export default {
       this.selectedColorIndexes = [];
 
       try {
-        const finalImageUrl = this.imageUrl.trim() || this.previewImageUrl;
+        let finalImageUrl = this.imageUrl.trim() || this.previewImageUrl;
         if (!finalImageUrl) {
           throw new Error('请先上传图片或输入图片URL');
         }
 
+        // 如果是本地文件路径，先上传到imgbb转换为公网链接
+        if (finalImageUrl.startsWith('blob:') || finalImageUrl.startsWith('data:')) {
+          if (this.uploadedFile) {
+            this.$message.info('正在上传图片到公网...');
+            const formData = new FormData();
+            formData.append('image', this.uploadedFile);
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${this.imgbbApiKey}`, {
+              method: 'POST',
+              body: formData,
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+              finalImageUrl = result.data.url;
+              this.previewImageUrl = finalImageUrl;
+              this.$message.success('图片已转换为公网链接！');
+            } else {
+              throw new Error('图片上传失败：' + (result.error?.message || '未知错误'));
+            }
+          } else {
+            throw new Error('请重新上传图片');
+          }
+        }
+
         const img = new Image();
         img.crossOrigin = 'Anonymous';
-        img.onload = async () => {
+        img.onload = () => {
           try {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -190,11 +214,36 @@ export default {
               colorMap.set(hex, count + 1);
             }
 
-            const sortedColors = Array.from(colorMap.entries())
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, this.maxColors);
+            // 按出现频率排序
+            const sortedByFrequency = Array.from(colorMap.entries())
+              .sort((a, b) => b[1] - a[1]);
 
-            this.extractedColors = sortedColors.map(([hex]) => ({
+            // 过滤相似颜色，确保提取的颜色有足够差异性
+            const filteredColors = [];
+            const threshold = 50; // 颜色差异阈值，值越大，颜色差异越大
+
+            for (const [hex, count] of sortedByFrequency) {
+              // 检查是否与已选择的颜色过于相似
+              const isSimilar = filteredColors.some(existingHex => {
+                return this.getColorDifference(hex, existingHex) < threshold;
+              });
+
+              if (!isSimilar) {
+                filteredColors.push(hex);
+                if (filteredColors.length >= this.maxColors) break;
+              }
+            }
+
+            // 如果过滤后颜色不足，补充一些频率较高的颜色
+            if (filteredColors.length < this.maxColors) {
+              const remainingColors = sortedByFrequency
+                .filter(([hex]) => !filteredColors.includes(hex))
+                .slice(0, this.maxColors - filteredColors.length);
+              
+              remainingColors.forEach(([hex]) => filteredColors.push(hex));
+            }
+
+            this.extractedColors = filteredColors.map(hex => ({
               hex,
               name: this.getColorName(hex),
             }));
@@ -209,7 +258,7 @@ export default {
         };
 
         img.onerror = () => {
-          this.extractError = '图片加载失败，请检查URL是否有效';
+          this.extractError = '图片加载失败，请检查URL是否有效或是否支持跨域访问';
           this.$message.error(this.extractError);
           this.isExtracting = false;
         };
@@ -232,6 +281,33 @@ export default {
         '#ffff00': '黄色', '#ff00ff': '洋红', '#00ffff': '青色', '#ffa500': '橙色', '#800080': '紫色',
       };
       return colorNames[hex.toLowerCase()] || `自定义色`;
+    },
+
+    // 计算两个颜色之间的差异（基于RGB值的欧几里得距离）
+    getColorDifference(hex1, hex2) {
+      const rgb1 = this.hexToRgb(hex1);
+      const rgb2 = this.hexToRgb(hex2);
+      
+      const rDiff = rgb1.r - rgb2.r;
+      const gDiff = rgb1.g - rgb2.g;
+      const bDiff = rgb1.b - rgb2.b;
+      
+      // 返回RGB空间中的欧几里得距离
+      return Math.sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
+    },
+
+    // 将十六进制颜色转换为RGB对象
+    hexToRgb(hex) {
+      // 移除#号
+      hex = hex.replace(/^#/, '');
+      
+      // 解析RGB值
+      let bigint = parseInt(hex, 16);
+      let r = (bigint >> 16) & 255;
+      let g = (bigint >> 8) & 255;
+      let b = bigint & 255;
+      
+      return { r, g, b };
     },
 
     toggleColorSelect(index) {
