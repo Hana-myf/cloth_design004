@@ -146,7 +146,20 @@ export default {
         }
         this.loginToStore({ id: data.data.id, role: data.data.role, token: data.data.token });
         setToken(data.data.token);
-        this.$swal.fire({ title: '成功', text: '正在跳转...', icon: 'success', showConfirmButton: false, timer: DELAY_TIME });
+        this.$swal.fire({
+          title: '登录成功',
+          text: '正在跳转...',
+          icon: false,
+          showConfirmButton: false,
+          timer: DELAY_TIME,
+          customClass: {
+            popup: 'login-success-popup',
+            title: 'login-success-title',
+            content: 'login-success-content'
+          },
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdrop: 'rgba(61, 47, 36, 0.3)'
+        });
         setTimeout(() => { this.navigateToRole(data.data.role); }, DELAY_TIME);
       } catch (error) {
         this.$message.error('请求出错');
@@ -231,4 +244,121 @@ export default {
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
 @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @media (max-width: 950px) { .brand-section { display: none; } .login-main { justify-content: center; } }
+
+/* 登录成功弹窗样式 */
+.login-success-popup {
+  border-radius: 20px !important;
+  border: 1px solid rgba(226, 184, 110, 0.3) !important;
+  box-shadow: 0 20px 40px rgba(74, 58, 42, 0.15) !important;
+  backdrop-filter: blur(10px) !important;
+  padding: 30px !important;
+  animation: popup-slide-in 0.5s ease-out forwards !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.login-success-popup::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -50% !important;
+  left: -50% !important;
+  width: 200% !important;
+  height: 200% !important;
+  background: linear-gradient(
+    45deg,
+    rgba(226, 184, 110, 0.1) 0%,
+    rgba(226, 184, 110, 0) 25%,
+    rgba(226, 184, 110, 0) 50%,
+    rgba(226, 184, 110, 0) 75%,
+    rgba(226, 184, 110, 0.1) 100%
+  ) !important;
+  animation: shimmer 3s linear infinite !important;
+  z-index: 0 !important;
+}
+
+.login-success-title {
+  color: #3d2f24 !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  margin-bottom: 15px !important;
+  font-family: "PingFang SC", "Optima", sans-serif !important;
+  animation: title-fade-in 0.8s ease-out forwards !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.login-success-content {
+  color: #8c7662 !important;
+  font-size: 14px !important;
+  font-family: "PingFang SC", "Optima", sans-serif !important;
+  animation: content-fade-in 1s ease-out forwards !important;
+  position: relative !important;
+  z-index: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.login-success-content::after {
+  content: '' !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  border: 2px solid #e2b86e !important;
+  border-top: 2px solid transparent !important;
+  border-radius: 50% !important;
+  margin-left: 10px !important;
+  animation: spin 1s linear infinite !important;
+}
+
+@keyframes popup-slide-in {
+  0% {
+    transform: scale(0.8) translateY(-20px) !important;
+    opacity: 0 !important;
+  }
+  100% {
+    transform: scale(1) translateY(0) !important;
+    opacity: 1 !important;
+  }
+}
+
+@keyframes title-fade-in {
+  0% {
+    opacity: 0 !important;
+    transform: translateY(-10px) !important;
+  }
+  100% {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+}
+
+@keyframes content-fade-in {
+  0% {
+    opacity: 0 !important;
+    transform: translateY(10px) !important;
+  }
+  100% {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: rotate(0deg) !important;
+  }
+  100% {
+    transform: rotate(360deg) !important;
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg) !important;
+  }
+  100% {
+    transform: rotate(360deg) !important;
+  }
+}
 </style>

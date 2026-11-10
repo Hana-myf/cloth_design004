@@ -22,11 +22,7 @@
                     <el-option v-for="w in [1,2,3,5,8,12,20]" :key="w" :label="w + ' px'" :value="w" />
                 </el-select>
 
-                <!-- 新增：透明度滑块 -->
-                <div class="opacity-slider ml8">
-                    <span class="label">不透明度</span>
-                    <el-slider v-model="opacity" :min="1" :max="100" size="small" style="width: 80px;"></el-slider>
-                </div>
+
             </div>
             <div class="right-tools">
                 <el-button size="small" icon="el-icon-refresh-left" @click="undo">撤销</el-button>
@@ -42,7 +38,7 @@
                 <div class="status">
                     <span>当前工具：{{ activeTool === 'pen' ? '画笔' : '橡皮擦' }}</span>
                     <span>笔触类型：{{ getBrushTypeName() }}</span>
-                    <span>不透明度：{{ opacity }}%</span>
+                    <span>透明度：{{ opacity }}%</span>
                 </div>
 
                 <div class="text-input-section">
@@ -60,6 +56,14 @@
                     <transition name="el-fade-in">
                         <div v-if="clothingResult" class="preview-content">
                             <img :src="clothingResult" alt="成衣预览" class="preview-image">
+                            <!-- 新增：查看图片按钮 -->
+                            <el-button 
+                                size="small" 
+                                @click="previewDialogVisible = true"
+                                style="margin-top: 10px; width: 100%; background-color: #f9eeda; border-color: #f0e8d0; color: #8a7d5e;"
+                            >
+                                查看图片
+                            </el-button>
                         </div>
                         <div v-else class="preview-placeholder">
                             <i class="el-icon-picture-outline"></i>
@@ -73,6 +77,79 @@
             <div class="canvas-wrap card">
                 <canvas ref="canvas" :width="canvasWidth" :height="canvasHeight" class="design-canvas"
                         @mousedown="onPointerDown" @mousemove="onPointerMove" @mouseup="onPointerUp" @mouseleave="onPointerUp"></canvas>
+            </div>
+
+            <!-- 右侧工具栏 -->
+            <div class="right-sidebar card">
+                <!-- 工具 -->
+                <div class="section-title">工具</div>
+                <div class="tool-section">
+                    <el-button size="small" @click="addMask" class="tool-button">
+                        <i class="el-icon-view"></i>
+                        <span>蒙版</span>
+                    </el-button>
+                    <el-button size="small" @click="addClip" class="tool-button">
+                        <i class="el-icon-scissors"></i>
+                        <span>剪裁</span>
+                    </el-button>
+                </div>
+
+                <!-- 图层管理 -->
+                <div class="section-title">图层</div>
+                <div class="layers-panel">
+                    <div class="layer-item" v-for="(layer, index) in layers" :key="index" @click="selectLayer(index)">
+                        <div class="layer-info">
+                            <i class="el-icon-caret-right"></i>
+                            <span>{{ layer.name }}</span>
+                        </div>
+                    </div>
+                    <el-button size="small" type="warning" @click="addLayer" style="width: 100%; margin-top: 8px; background-color: #f0c880; border-color: #f0c880; color: #8a7d5e; box-sizing: border-box;">
+                        <i class="el-icon-plus"></i> 添加
+                    </el-button>
+                </div>
+
+                <!-- 图层调整 -->
+                <div class="section-title">调整</div>
+                <div class="adjust-panel">
+                    <div class="adjust-item">
+                        <span class="label">透明度</span>
+                        <el-slider v-model="opacity" :min="0" :max="100" size="small"></el-slider>
+                    </div>
+                    <div class="adjust-item">
+                        <span class="label">亮度</span>
+                        <el-slider v-model="brightness" :min="0" :max="200" size="small"></el-slider>
+                    </div>
+                    <div class="adjust-item">
+                        <span class="label">对比度</span>
+                        <el-slider v-model="contrast" :min="0" :max="200" size="small"></el-slider>
+                    </div>
+                </div>
+
+                <!-- 色彩情况 -->
+                <div class="section-title">颜色</div>
+                <div class="color-panel">
+                    <div class="color-info">
+                        <div class="color-preview" :style="{ backgroundColor: strokeColor }"></div>
+                        <span class="color-value">{{ strokeColor }}</span>
+                    </div>
+                </div>
+
+                <!-- 导出功能 -->
+                <div class="section-title">导出</div>
+                <div class="export-panel">
+                    <el-dropdown>
+                        <el-button size="small" type="warning" style="width: 100%; background-color: #f0c880; border-color: #f0c880; color: #8a7d5e;">
+                            <i class="el-icon-download"></i> 导出 <i class="el-icon-arrow-down"></i>
+                        </el-button>
+                        <el-dropdown-menu slot="dropdown">
+                            <el-dropdown-item>导出线稿</el-dropdown-item>
+                            <el-dropdown-item>导出效果图</el-dropdown-item>
+                            <el-dropdown-item>导出制版 DXF</el-dropdown-item>
+                            <el-dropdown-item>导出生产单 PDF</el-dropdown-item>
+                            <el-dropdown-item>导出分层 PSD</el-dropdown-item>
+                        </el-dropdown-menu>
+                    </el-dropdown>
+                </div>
             </div>
         </div>
 
@@ -94,13 +171,29 @@
         </div>
 
         <!-- 结果大图预览 -->
-        <el-dialog title="成衣渲染完成" v-model="previewDialogVisible" width="600px">
+        <el-dialog 
+            title="" 
+            :visible.sync="previewDialogVisible" 
+            width="800px"
+            center
+            custom-class="clothing-dialog"
+        >
             <div class="result-display">
                 <img :src="clothingResult" alt="渲染结果" class="full-result-image">
             </div>
             <template #footer>
-                <el-button type="primary" @click="downloadClothingResult">下载图片</el-button>
-                <el-button @click="previewDialogVisible = false">关闭</el-button>
+                <el-button 
+                    @click="downloadClothingResult" 
+                    style="background-color: #f0c880; border-color: #f0c880; color: #8a7d5e;"
+                >
+                    下载图片
+                </el-button>
+                <el-button 
+                    @click="previewDialogVisible = false" 
+                    style="background-color: #f9eeda; border-color: #f0e8d0; color: #8a7d5e;"
+                >
+                    关闭
+                </el-button>
             </template>
         </el-dialog>
     </div>
@@ -113,7 +206,7 @@ export default {
         return {
             activeTool: 'pen',
             brushType: 'pencil', // 默认笔触
-            opacity: 100,        // 默认不透明度
+            opacity: 80,        // 默认不透明度
             strokeColor: 'rgba(50,50,50,1)',
             lineWidth: 3,
             isDrawing: false,
@@ -125,7 +218,7 @@ export default {
             progressPercentage: 0,
             clothingResult: '',
             previewDialogVisible: false,
-            textInput: ''
+            textInput: '' // 用于输入设计描述
         }
     },
     computed: {
@@ -155,7 +248,7 @@ export default {
             }, intervalTime);
         },
         finishConversion() {
-            this.clothingResult = 'https://pic1.imgdb.cn/item/69c727320e9de3207f582855.png';
+            this.clothingResult = 'https://pic1.imgdb.cn/item/69dd977df26639441e6e1864.png';
             this.isConverting = false;
             this.previewDialogVisible = true;
             this.$message.success('转换成功！');
@@ -248,6 +341,9 @@ export default {
     gap: 16px;
     font-family: "Microsoft YaHei", Arial, sans-serif;
     box-sizing: border-box;
+    overflow-x: auto;
+    width: 100%;
+    min-width: fit-content;
 }
 
 .card {
@@ -255,6 +351,8 @@ export default {
     border: 1px solid #f0e8d0;
     border-radius: 16px;
     box-shadow: 0 6px 18px rgba(240, 224, 180, 0.15);
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .toolbar {
@@ -262,70 +360,218 @@ export default {
     align-items: center;
     justify-content: space-between;
     padding: 12px 20px;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-wrap: nowrap;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: calc(200px + 16px + 1fr + 16px + 200px);
 }
 
 .left-tools, .right-tools {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
 }
 
-.opacity-slider {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    .label {
-        font-size: 12px;
-        color: #8a7d5e;
-        white-space: nowrap;
-    }
-}
+
 
 .workspace {
     display: flex;
     flex: 1;
     gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: calc(200px + 16px + 600px + 16px + 200px);
 }
 
 .sidebar {
-    width: 260px;
-    padding: 20px;
+    width: 200px;
+    padding: 15px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.right-sidebar {
+    width: 200px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+/* 🔴 核心修复：工具按钮组，强制100%宽度+统一样式 */
+.tool-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    .tool-button {
+        width: 80% !important;
+        min-width: unset !important;
+        height: 36px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        font-size: 11px !important;
+        border-radius: 8px !important;
+        box-sizing: border-box !important;
+        margin: 0 auto !important;
+        padding: 0 10px !important;
+    }
+}
+
+/* 🔴 强制覆盖Element Plus按钮默认样式，彻底统一 */
+:deep(.el-button.tool-button) {
+    width: 80% !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+    padding: 0 10px !important;
+}
+
+.layers-panel {
+    max-height: 220px;
+    overflow-y: auto;
+    .layer-item {
+        padding: 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        &:hover {
+            background-color: #f9eeda;
+        }
+        .layer-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    }
+    :deep(.el-button) {
+        width: 80% !important;
+        margin: 8px auto 0 auto !important;
+        display: block !important;
+    }
+}
+
+.adjust-panel {
+    .adjust-item {
+        margin-bottom: 8px;
+        .label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 10px;
+            color: #8a7d5e;
+        }
+    }
+}
+
+.color-panel {
+    .color-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        .color-preview {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #f0e8d0;
+        }
+        .color-value {
+            font-size: 9px;
+            color: #8a7d5e;
+            flex: 1;
+            word-break: break-all;
+        }
+    }
+}
+
+.export-panel {
+    margin-top: 4px;
+}
+
+/* 弹窗样式美化 */
+.clothing-dialog {
+    .el-dialog__header {
+        background-color: #fff8e8;
+        border-bottom: 1px solid #f0e8d0;
+        .el-dialog__title {
+            color: #8a7d5e;
+            font-weight: 500;
+            font-size: 16px;
+        }
+    }
+    .el-dialog__body {
+        background-color: #fffdf8;
+        padding: 20px;
+    }
+    .el-dialog__footer {
+        background-color: #fff8e8;
+        border-top: 1px solid #f0e8d0;
+        padding: 15px 20px;
+    }
+}
+
+.result-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    background-color: #fcf9f2;
+    border-radius: 8px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.full-result-image {
+    max-width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(240, 224, 180, 0.2);
 }
 
 .section-title {
     font-weight: 500;
     color: #8a7d5e;
-    font-size: 16px;
-    margin-bottom: 12px;
+    font-size: 14px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     &::before {
         content: "";
-        width: 8px;
-        height: 16px;
+        width: 6px;
+        height: 12px;
         background-color: #f0c880;
-        border-radius: 4px;
+        border-radius: 3px;
     }
 }
 
-.divider { height: 1px; background-color: #f0e8d0; margin: 8px 0; }
+.divider { height: 1px; background-color: #f0e8d0; margin: 6px 0; }
 
 .status {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     color: #8a7d5e;
     font-size: 13px;
 }
 
 .text-input-section {
-    margin: 12px 0;
+    margin: 8px 0;
 }
 
 .canvas-wrap {
@@ -333,7 +579,8 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #fcf9f2; /* 轻微区别于卡片色 */
+    background-color: #fcf9f2;
+    min-width: 600px;
 }
 
 .design-canvas {
@@ -342,6 +589,8 @@ export default {
     border-radius: 4px;
     border: 1px dashed #f0e8d0;
     cursor: crosshair;
+    width: 100%;
+    height: 100%;
 }
 
 .preview-box {
@@ -351,10 +600,11 @@ export default {
     border-radius: 8px;
     height: 220px;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     border: 1px dashed #f0c880;
-    .preview-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .preview-image { max-width: 100%; max-height: 80%; object-fit: contain; }
     .preview-placeholder { text-align: center; color: #b0a080; i { font-size: 36px; margin-bottom: 12px; } }
 }
 

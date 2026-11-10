@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: cn.kmbeast.test.EvaluationsTest
+-------------------------------------------------------------------------------
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.835 s - in cn.kmbeast.test.EvaluationsTest
